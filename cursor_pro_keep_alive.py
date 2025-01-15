@@ -1,14 +1,17 @@
 import os
 import subprocess
-
+import sys
 from exit_cursor import ExitCursor
 from reset_machine import MachineIDResetter
 
+# 禁用不必要的日志输出
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
+os.environ["PYTHONWARNINGS"] = "ignore"
 
 import time
 import random
+import atexit
 from cursor_auth_manager import CursorAuthManager
 import os
 from logger import logging
@@ -292,15 +295,6 @@ if __name__ == "__main__":
                 logging.info("重置机器码...")
                 MachineIDResetter().reset_machine_ids()
                 
-                # 如果有 Cursor 路径，重新启动 Cursor
-                if cursor_path:
-                    try:
-                        logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                        os.startfile(cursor_path) if os.name == 'nt' else subprocess.Popen(['open', cursor_path])
-                        logging.info("Cursor 已重新启动")
-                    except Exception as e:
-                        logging.error(f"重启 Cursor 失败: {str(e)}")
-                
                 logging.info("所有操作已完成")
             else:
                 logging.error("获取会话令牌失败，注册流程未完成")
@@ -311,6 +305,30 @@ if __name__ == "__main__":
 
         logging.error(traceback.format_exc())
     finally:
+        # 清理资源
         if browser_manager:
             browser_manager.quit()
-        input("\n程序执行完毕，按回车键退出...")
+            browser_manager = None
+        
+        print("\n程序执行完毕，按回车键退出...", end='', flush=True)
+        try:
+            input()
+        except (KeyboardInterrupt, EOFError):
+            pass
+        
+        # 重启Cursor并退出
+        if cursor_path:
+            try:
+                logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+                else:
+                    subprocess.Popen(['open', cursor_path])
+                logging.info("Cursor 已重新启动")
+            except Exception as e:
+                logging.error(f"重启 Cursor 失败: {str(e)}")
+        
+        # 强制退出程序
+        os._exit(0)

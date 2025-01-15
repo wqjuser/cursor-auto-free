@@ -8,19 +8,9 @@ a = Analysis(
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
         ('cursor_auth_manager.py', '.'),
-        ('exit_cursor.py', '.'),
-        ('get_email_code.py', '.'),
-        ('logger.py', '.'),
     ],
     hiddenimports=[
-        'cursor_auth_manager',
-        'psutil',
-        'dotenv',
-        'DrissionPage',
-        'colorama',
-        'exit_cursor',
-        'get_email_code',
-        'logger'
+        'cursor_auth_manager'
     ],
     hookspath=[],
     hooksconfig={},
@@ -48,8 +38,8 @@ exe = EXE(
     runtime_tmpdir=None,
     console=True,
     disable_windowed_traceback=False,
-    argv_emulation=True,  # 对非Mac平台无影响
-    target_arch=target_arch,  # 仅在需要时通过环境变量指定
+    argv_emulation=True,
+    target_arch=target_arch,
     codesign_identity=None,
     entitlements_file=None,
     icon=None
