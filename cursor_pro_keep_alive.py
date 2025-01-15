@@ -1,6 +1,5 @@
 import os
 import subprocess
-import sys
 from exit_cursor import ExitCursor
 from reset_machine import MachineIDResetter
 

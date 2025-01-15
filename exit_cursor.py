@@ -23,7 +23,15 @@ def ExitCursor(timeout=5):
                     try:
                         # 只需要记录第一个找到的路径
                         if not cursor_path:
-                            cursor_path = proc.exe()
+                            raw_path = proc.exe()
+                            # 路径处理:
+                            # - Mac: 截取到.app结尾 (如/Applications/Cursor.app)
+                            # - Linux: 保持原路径 (如/usr/bin/cursor或/opt/cursor/cursor)
+                            # - Windows: 保持原路径 (如C:\Users\Username\AppData\Local\Programs\Cursor\Cursor.exe)
+                            if raw_path and '.app' in raw_path:  # Mac系统
+                                cursor_path = raw_path[:raw_path.find('.app') + 4]
+                            else:  # Linux/Windows系统
+                                cursor_path = raw_path
                             logging.info(f"Cursor 进程位于: {cursor_path}")
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         logging.warning(f"无法获取进程 (PID: {proc.pid}) 的文件路径")
