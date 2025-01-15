@@ -8,9 +8,19 @@ a = Analysis(
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
         ('cursor_auth_manager.py', '.'),
+        ('exit_cursor.py', '.'),
+        ('get_email_code.py', '.'),
+        ('logger.py', '.'),
     ],
     hiddenimports=[
-        'cursor_auth_manager'
+        'cursor_auth_manager',
+        'psutil',
+        'dotenv',
+        'DrissionPage',
+        'colorama',
+        'exit_cursor',
+        'get_email_code',
+        'logger'
     ],
     hookspath=[],
     hooksconfig={},

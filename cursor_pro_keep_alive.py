@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from exit_cursor import ExitCursor
 from reset_machine import MachineIDResetter
@@ -248,7 +249,7 @@ if __name__ == "__main__":
     browser_manager = None
     try:
         logging.info("\n=== 初始化程序 ===")
-        ExitCursor()
+        success, cursor_path = ExitCursor()
         logging.info("正在初始化浏览器...")
         browser_manager = BrowserManager()
         browser = browser_manager.init_browser()
@@ -290,6 +291,16 @@ if __name__ == "__main__":
 
                 logging.info("重置机器码...")
                 MachineIDResetter().reset_machine_ids()
+                
+                # 如果有 Cursor 路径，重新启动 Cursor
+                if cursor_path:
+                    try:
+                        logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                        os.startfile(cursor_path) if os.name == 'nt' else subprocess.Popen(['open', cursor_path])
+                        logging.info("Cursor 已重新启动")
+                    except Exception as e:
+                        logging.error(f"重启 Cursor 失败: {str(e)}")
+                
                 logging.info("所有操作已完成")
             else:
                 logging.error("获取会话令牌失败，注册流程未完成")
