@@ -47,7 +47,7 @@ def ExitCursor(timeout=5):
         for proc in cursor_processes:
             try:
                 if proc.is_running():
-                    proc.terminate()
+                    proc.terminate()# 发送终止信号
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
