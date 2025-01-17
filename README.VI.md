@@ -23,8 +23,8 @@ Tự động đăng ký tài khoản, tự động làm mới token, giải phó
 
 ## Hướng Dẫn Cấu Hình
 - Cần sử dụng email theo tên miền Cloudflare. Hãy tìm hiểu cách sử dụng.  
-- **(Rất quan trọng)** Cần sử dụng email tạm thời từ temp-mail.plus. Hãy tìm hiểu cách sử dụng.  
-- Chuyển tiếp email từ tên miền Cloudflare sang temp-mail.plus.  
+- **(Rất quan trọng)** Cần sử dụng email tạm thời từ tempmail.plus. Hãy tìm hiểu cách sử dụng.  
+- Chuyển tiếp email từ tên miền Cloudflare sang tempmail.plus.  
 - Tải tệp `.env.example` về thư mục gốc của chương trình và đổi tên thành `.env`.
 
 ### Cấu hình tệp `.env`:

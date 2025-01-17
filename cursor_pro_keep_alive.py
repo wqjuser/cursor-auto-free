@@ -219,7 +219,9 @@ class EmailGenerator:
             )
         ),
     ):
-        self.domain = Config().get_domain()
+        configInstance = Config()
+        configInstance.print_config()
+        self.domain = configInstance.get_domain()
         self.default_password = password
         self.default_first_name = self.generate_random_name()
         self.default_last_name = self.generate_random_name()
@@ -227,7 +229,9 @@ class EmailGenerator:
     def generate_random_name(self, length=6):
         """生成随机用户名"""
         first_letter = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        rest_letters = ''.join(random.choices("abcdefghijklmnopqrstuvwxyz", k=length-1))
+        rest_letters = "".join(
+            random.choices("abcdefghijklmnopqrstuvwxyz", k=length - 1)
+        )
         return first_letter + rest_letters
 
     def generate_email(self, length=8):
@@ -257,7 +261,7 @@ if __name__ == "__main__":
         browser = browser_manager.init_browser()
 
         logging.info("正在初始化邮箱验证模块...")
-        email_handler = EmailVerificationHandler(browser)
+        email_handler = EmailVerificationHandler()
 
         logging.info("\n=== 配置信息 ===")
         login_url = "https://authenticator.cursor.sh"

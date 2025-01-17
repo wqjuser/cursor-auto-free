@@ -41,11 +41,12 @@ class Config:
         if not self.check_is_valid(self.domain):
             raise ValueError("域名未配置，请在 .env 文件中设置 DOMAIN")
 
-        logging.info(f"\033[32m临时邮箱: {self.temp_mail}\033[0m")
-        logging.info(f"\033[32m域名: {self.domain}\033[0m")
-
     def check_is_valid(self, str):
         return len(str.strip()) > 0
+
+    def print_config(self):
+        logging.info(f"\033[32m临时邮箱: {self.temp_mail}\033[0m")
+        logging.info(f"\033[32m域名: {self.domain}\033[0m")
 
 
 # 使用示例

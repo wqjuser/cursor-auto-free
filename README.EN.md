@@ -23,8 +23,8 @@ Automated account registration and token refreshing to free your hands.
 
 ## Configuration Instructions
 - Use a Cloudflare domain email. Search for instructions if needed.  
-- **(Very Important)** Use temp-mail.plus email. Search for instructions if needed.  
-- Forward Cloudflare emails to temp-mail.plus.  
+- **(Very Important)** Use tempmail.plus email. Search for instructions if needed.  
+- Forward Cloudflare emails to tempmail.plus.  
 - Download the `.env.example` file to the program's root directory and rename it to `.env`.
 
 ### Example `.env` file:
