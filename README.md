@@ -30,6 +30,7 @@ https://github.com/chengazhen/cursor-auto-free/releases
 
 ## 配置说明
 
+## 1. tempmail.plus 转发邮箱
 + 需要使用 cloudflare 域名邮箱，请自行搜索如何使用 cloudflare 域名邮箱，请自行搜索如何使用。
 + **（非常重要）** 需要使用 tempmail.plus 邮箱，请自行搜索如何使用 tempmail.plus 邮箱。
 + 将 cloudflare 的域名邮箱转发到 tempmail.plus 邮箱。
@@ -40,7 +41,7 @@ https://github.com/chengazhen/cursor-auto-free/releases
 
 ```bash
 DOMAIN='xxxxx.me'    # 你的邮箱域名 自行搜索如何使用 cloudflare 邮箱
-TEMP_MAIL='xxxxxx'   # 临时邮箱前缀，可以自定义，不需要后缀; 用的还是https://tempmail.plus/zh/#! 的邮箱
+TEMP_MAIL='xxxxxx'   # 临时邮箱，就是你cloudflare 设置的目标位置 用的还是https://tempmail.plus/zh/#! 的邮箱
 ```
 
 例如，如果你设置：
@@ -50,6 +51,24 @@ TEMP_MAIL='ccxxxxcxx'
 ```
 那么程序将随机生成 `@wozhangsan.me` 后缀作为注册邮箱。
 
+### 2. 使用 IMAP 来代替 tempmail.plus 邮箱
+如果无法使用 tempmail.plus 邮箱，或者想使用一种更安全的方法来获取验证码，你可以像这样设置
+```base
+DOMAIN='wozhangsan.me'
+TEMP_MAIL=null
+
+# IMAP服务器
+IMAP_SERVER=imap.xxxxx.com
+# IMAP的SSL端口
+IMAP_PORT=993  
+# 使用cf转发到的邮箱
+IMAP_USER=xxxxxx@xxxxx.com
+# 邮箱授权码
+IMAP_PASS=xxxxxxxxxxxxx
+# [可选] 默认是收件箱(inbox)
+# 你也可以设置成其他的文件夹，只要你可以收到
+IMAP_DIR=
+```
 
 ## 运行方法
 
@@ -111,6 +130,7 @@ chmod +x ./CursorPro
 - **2025-01-09** 增加了 log 日志，方便调试，增加了退出cursor，自动构建功能
 - **2025-01-10** 修改为使用 cloudflared 域名邮箱
 - **2025-01-11** 增加了可以通过 .env 文件配置 无头模式，增加了代理
+- **2025-01-20** 增加了通过 IMAP 来代替 tempmail.plus 邮箱
 
-仓库部分源码来自[gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto)；自行优化了验证和邮箱自动注册逻辑；解决了无法获取邮箱验证码的问题。
+灵感来自[gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto)；自行优化了验证和邮箱自动注册逻辑；解决了无法获取邮箱验证码的问题。
 

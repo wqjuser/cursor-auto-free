@@ -1,7 +1,9 @@
 # Cursor Pro Automation Tool User Guide
 
+README also available in: [中文](./README.md), [Tiếng Việt](./README.VI.md)
+
 ## Note
-Recently, some users have sold this software on platforms like Xianyu. Please avoid such practices—there’s no need to earn money this way.
+Recently, some users have sold this software on platforms like Xianyu. Please avoid such practices—there's no need to earn money this way.
 
 ## License
 This project is licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).  
@@ -22,15 +24,17 @@ Automated account registration and token refreshing to free your hands.
 3. **A stable internet connection is required, preferably via an overseas node. Do not enable global proxy.**
 
 ## Configuration Instructions
+
+### 1. tempmail.plus Email Forwarding
 - Use a Cloudflare domain email. Search for instructions if needed.  
 - **(Very Important)** Use tempmail.plus email. Search for instructions if needed.  
 - Forward Cloudflare emails to tempmail.plus.  
 - Download the `.env.example` file to the program's root directory and rename it to `.env`.
 
-### Example `.env` file:
+Example `.env` file:
 ```bash
 DOMAIN='xxxxx.me'    # Your email domain (search for Cloudflare email usage)
-TEMP_MAIL='xxxxxx'   # Temporary email prefix (no suffix needed)
+TEMP_MAIL='xxxxxx'   # Temporary email, the target position you set in Cloudflare, using https://tempmail.plus/zh/#!
 ```
 Example:
 ```bash
@@ -38,6 +42,25 @@ DOMAIN='wozhangsan.me'
 TEMP_MAIL='ccxxxxcxx'
 ```
 The program will randomly generate emails with the `@wozhangsan.me` suffix.
+
+### 2. Using IMAP Instead of tempmail.plus
+If you can't use tempmail.plus or prefer a more secure method to receive verification codes, you can configure like this:
+```bash
+DOMAIN='wozhangsan.me'
+TEMP_MAIL=null
+
+# IMAP server
+IMAP_SERVER=imap.xxxxx.com
+# IMAP SSL port
+IMAP_PORT=993
+# Email forwarded from CF
+IMAP_USER=xxxxxx@xxxxx.com
+# Email authorization code
+IMAP_PASS=xxxxxxxxxxxxx
+# [Optional] Default is inbox
+# You can set it to other folders where you can receive emails
+IMAP_DIR=
+```
 
 ## How to Run the Program
 
@@ -71,6 +94,9 @@ After running the script, restart your editor. If the displayed account matches 
    - Wait for the program to complete all operations.
    - Close the program only after seeing the "script completed" message.
 
+## Sponsor for More Updates
+![image](./screen/afdian-[未认证]阿臻.jpg)
+
 ## Common Issues
 1. Program freezes:
    - Check your internet connection.
@@ -83,5 +109,6 @@ This tool is for educational and research purposes only. Users bear full respons
 - **2025-01-09**: Added logs and auto-build feature.  
 - **2025-01-10**: Switched to Cloudflare domain email.  
 - **2025-01-11**: Added headless mode and proxy configuration through .env file.
+- **2025-01-20**: Added IMAP to replace tempmail.plus.
 
-Some source code is from [gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto).
+Inspired by [gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto); optimized verification and email auto-registration logic; solved the issue of not being able to receive email verification codes.

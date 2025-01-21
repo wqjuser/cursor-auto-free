@@ -1,5 +1,7 @@
 # Công Cụ Tự Động Hóa Cursor Pro
 
+README cũng có sẵn bằng: [中文](./README.md), [English](./README.EN.md)
+
 ## Lời Nhắc
 Gần đây có người mang phần mềm này bán trên các trang thương mại, việc này nên hạn chế. Không phải cái gì cũng cần kiếm tiền.
 
@@ -22,15 +24,17 @@ Tự động đăng ký tài khoản, tự động làm mới token, giải phó
 3. **Cần có kết nối mạng ổn định, ưu tiên sử dụng máy chủ nước ngoài. Không bật proxy toàn cầu.**
 
 ## Hướng Dẫn Cấu Hình
+
+### 1. Chuyển Tiếp Email tempmail.plus
 - Cần sử dụng email theo tên miền Cloudflare. Hãy tìm hiểu cách sử dụng.  
 - **(Rất quan trọng)** Cần sử dụng email tạm thời từ tempmail.plus. Hãy tìm hiểu cách sử dụng.  
 - Chuyển tiếp email từ tên miền Cloudflare sang tempmail.plus.  
 - Tải tệp `.env.example` về thư mục gốc của chương trình và đổi tên thành `.env`.
 
-### Cấu hình tệp `.env`:
+Cấu hình tệp `.env`:
 ```bash
 DOMAIN='xxxxx.me'    # Tên miền email của bạn (tự tìm hiểu cách sử dụng Cloudflare email)
-TEMP_MAIL='xxxxxx'   # Tiền tố email tạm thời (không cần hậu tố)
+TEMP_MAIL='xxxxxx'   # Email tạm thời, là địa chỉ đích bạn đã thiết lập trong Cloudflare, sử dụng email từ https://tempmail.plus/zh/#!
 ```
 Ví dụ:
 ```bash
@@ -38,6 +42,25 @@ DOMAIN='wozhangsan.me'
 TEMP_MAIL='ccxxxxcxx'
 ```
 Chương trình sẽ tự tạo ngẫu nhiên email với đuôi `@wozhangsan.me`.
+
+### 2. Sử Dụng IMAP Thay Thế tempmail.plus
+Nếu bạn không thể sử dụng tempmail.plus hoặc muốn một phương pháp an toàn hơn để nhận mã xác minh, bạn có thể cấu hình như sau:
+```bash
+DOMAIN='wozhangsan.me'
+TEMP_MAIL=null
+
+# Máy chủ IMAP
+IMAP_SERVER=imap.xxxxx.com
+# Cổng SSL IMAP
+IMAP_PORT=993
+# Email được chuyển tiếp từ CF
+IMAP_USER=xxxxxx@xxxxx.com
+# Mã xác thực email
+IMAP_PASS=xxxxxxxxxxxxx
+# [Tùy chọn] Mặc định là hộp thư đến (inbox)
+# Bạn có thể đặt thành các thư mục khác nơi bạn có thể nhận email
+IMAP_DIR=
+```
 
 ## Cách Chạy Chương Trình
 
@@ -79,9 +102,12 @@ Sau khi chạy script, khởi động lại trình chỉnh sửa. Nếu tài kho
 ## Tuyên Bố Miễn Trừ
 Công cụ này chỉ dành cho mục đích học tập và nghiên cứu. Người dùng tự chịu trách nhiệm về mọi hậu quả. Nghiêm cấm sử dụng cho mục đích thương mại. Vi phạm giấy phép sẽ chịu trách nhiệm pháp lý.
 
-## Nhật Ký Cập Nhật
-- **2025-01-09**: Thêm log, chức năng tự xây dựng.  
-- **2025-01-10**: Chuyển sang email tên miền Cloudflare. 
-- **2025-01-11**: Thêm chức năng tự động xây dựng, thêm chức năng tự động xây dựng, thêm chức năng tự động xây dựng.
+## Tài Trợ Để Có Thêm Cập Nhật
+![image](./screen/afdian-[未认证]阿臻.jpg)
 
-Một phần mã nguồn đến từ [gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto).
+## Nhật Ký Cập Nhật
+- **2025-01-09**: Thêm nhật ký và tính năng tự động xây dựng.
+- **2025-01-10**: Chuyển sang sử dụng email tên miền Cloudflare.
+- **2025-01-11**: Thêm chế độ không giao diện và cấu hình proxy thông qua tệp .env.
+- **2025-01-20**: Thêm chế độ IMAP để thay thế tempmail.plus.
+Lấy cảm hứng từ [gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto); đã tối ưu hóa logic xác minh và đăng ký email tự động; đã giải quyết vấn đề không thể nhận mã xác minh email.
