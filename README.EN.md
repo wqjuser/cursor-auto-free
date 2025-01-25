@@ -1,9 +1,15 @@
 # Cursor Pro Automation Tool User Guide
 
-README also available in: [中文](./README.md), [Tiếng Việt](./README.VI.md)
+README also available in: [中文](./README.md)
+
+## Online Documentation
+[cursor-auto-free-doc.vercel.app](https://cursor-auto-free-doc.vercel.app)
 
 ## Note
 Recently, some users have sold this software on platforms like Xianyu. Please avoid such practices—there's no need to earn money this way.
+
+## Sponsor for More Updates
+![image](./screen/afdian-[未认证]阿臻.jpg)
 
 ## License
 This project is licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).  
@@ -15,95 +21,16 @@ But you must comply with the following conditions:
 ## Features
 Automated account registration and token refreshing to free your hands.
 
-## Download Link
-[https://github.com/chengazhen/cursor-auto-free/releases](https://github.com/chengazhen/cursor-auto-free/releases)
-
 ## Important Notes
 1. **Ensure you have Chrome installed. If not, [download here](https://www.google.com/intl/en_pk/chrome/).**  
 2. **You must log into your account, regardless of its validity. Logged-in is mandatory.**  
 3. **A stable internet connection is required, preferably via an overseas node. Do not enable global proxy.**
 
 ## Configuration Instructions
+Please refer to our [online documentation](https://cursor-auto-free-doc.vercel.app) for detailed configuration instructions.
 
-### 1. tempmail.plus Email Forwarding
-- Use a Cloudflare domain email. Search for instructions if needed.  
-- **(Very Important)** Use tempmail.plus email. Search for instructions if needed.  
-- Forward Cloudflare emails to tempmail.plus.  
-- Download the `.env.example` file to the program's root directory and rename it to `.env`.
-
-Example `.env` file:
-```bash
-DOMAIN='xxxxx.me'    # Your email domain (search for Cloudflare email usage)
-TEMP_MAIL='xxxxxx'   # Temporary email, the target position you set in Cloudflare, using https://tempmail.plus/zh/#!
-```
-Example:
-```bash
-DOMAIN='wozhangsan.me'
-TEMP_MAIL='ccxxxxcxx'
-```
-The program will randomly generate emails with the `@wozhangsan.me` suffix.
-
-### 2. Using IMAP Instead of tempmail.plus
-If you can't use tempmail.plus or prefer a more secure method to receive verification codes, you can configure like this:
-```bash
-DOMAIN='wozhangsan.me'
-TEMP_MAIL=null
-
-# IMAP server
-IMAP_SERVER=imap.xxxxx.com
-# IMAP SSL port
-IMAP_PORT=993
-# Email forwarded from CF
-IMAP_USER=xxxxxx@xxxxx.com
-# Email authorization code
-IMAP_PASS=xxxxxxxxxxxxx
-# [Optional] Default is inbox
-# You can set it to other folders where you can receive emails
-IMAP_DIR=
-```
-
-## How to Run the Program
-
-### Mac
-1. Open Terminal and navigate to the application directory.  
-2. Grant execution permission:  
-```bash
-chmod +x ./CursorPro
-```  
-3. Run the program:
-   - In Terminal:  
-```bash
-./CursorPro
-```  
-   - Or double-click the file in Finder.  
-
-If errors occur, refer to [solutions](https://sysin.org/blog/macos-if-crashes-when-opening/).
-
-### Windows
-Double-click `CursorPro.exe`.
-
-## How to Verify
-After running the script, restart your editor. If the displayed account matches the log, it worked successfully.
-
-## Usage Notes
-1. Requirements:
-   - Stable internet connection.
-   - Sufficient system permissions.
-
-2. During use:
-   - Wait for the program to complete all operations.
-   - Close the program only after seeing the "script completed" message.
-
-## Sponsor for More Updates
-![image](./screen/afdian-[未认证]阿臻.jpg)
-
-## Common Issues
-1. Program freezes:
-   - Check your internet connection.
-   - Restart the program.
-
-## Disclaimer
-This tool is for educational and research purposes only. Users bear full responsibility for any consequences. Commercial use is strictly prohibited. Violations of the license terms may result in legal action.
+## Download
+[https://github.com/chengazhen/cursor-auto-free/releases](https://github.com/chengazhen/cursor-auto-free/releases)
 
 ## Update Log
 - **2025-01-09**: Added logs and auto-build feature.  
