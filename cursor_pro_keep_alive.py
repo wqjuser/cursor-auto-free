@@ -225,7 +225,8 @@ class EmailGenerator:
         self.default_first_name = self.generate_random_name()
         self.default_last_name = self.generate_random_name()
 
-    def generate_random_name(self, length=6):
+    @staticmethod
+    def generate_random_name(length=6):
         """生成随机用户名"""
         first_letter = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         rest_letters = "".join(
