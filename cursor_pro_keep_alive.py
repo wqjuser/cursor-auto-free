@@ -149,7 +149,6 @@ def sign_up_account(browser, tab):
         logging.error(f"密码设置失败: {str(e)}")
         return False
 
-    time.sleep(random.uniform(1, 3))
     if tab.ele("This email is not available."):
         logging.error("注册失败：邮箱已被使用")
         return False
