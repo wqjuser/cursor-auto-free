@@ -1,41 +1,12 @@
-# Cursor Pro Automation Tool User Guide
+## Integration [cursor auto free]（ https://github.com/chengazhen/cursor-auto-free ）And [cursor reset]（ https://github.com/hamflx/cursor-reset ）The open-source scripts of two big shots
+## Unlimited trial of cursor tool 0.45. x version adaptation
+## Thank you to the two experts for their open-source efforts and the addition of some features
+### 1. Add menu options
+    1. Restore the original machine identification
+    2. Reset cursor
+### 2. Add the feature that if the cursor is closed by this script, it will automatically restart after the script is executed
 
-README also available in: [中文](./README.md)
+### <font color="red">Please make sure to read the original manuals of the two experts</font>
+1. [cursor-auto-free]( https://cursor-auto-free-doc.vercel.app/ )
 
-## Online Documentation
-[cursor-auto-free-doc.vercel.app](https://cursor-auto-free-doc.vercel.app)
-
-## Note
-Recently, some users have sold this software on platforms like Xianyu. Please avoid such practices—there's no need to earn money this way.
-
-## Sponsor for More Updates
-![image](./screen/afdian-[未认证]阿臻.jpg)
-
-## License
-This project is licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).  
-This means you may:  
-- **Share** — Copy and redistribute the material in any medium or format.  
-But you must comply with the following conditions:
-- **Non-commercial** — You may not use the material for commercial purposes.
-
-## Features
-Automated account registration and token refreshing to free your hands.
-
-## Important Notes
-1. **Ensure you have Chrome installed. If not, [download here](https://www.google.com/intl/en_pk/chrome/).**  
-2. **You must log into your account, regardless of its validity. Logged-in is mandatory.**  
-3. **A stable internet connection is required, preferably via an overseas node. Do not enable global proxy.**
-
-## Configuration Instructions
-Please refer to our [online documentation](https://cursor-auto-free-doc.vercel.app) for detailed configuration instructions.
-
-## Download
-[https://github.com/chengazhen/cursor-auto-free/releases](https://github.com/chengazhen/cursor-auto-free/releases)
-
-## Update Log
-- **2025-01-09**: Added logs and auto-build feature.  
-- **2025-01-10**: Switched to Cloudflare domain email.  
-- **2025-01-11**: Added headless mode and proxy configuration through .env file.
-- **2025-01-20**: Added IMAP to replace tempmail.plus.
-
-Inspired by [gpt-cursor-auto](https://github.com/hmhm2022/gpt-cursor-auto); optimized verification and email auto-registration logic; solved the issue of not being able to receive email verification codes.
+2. [cursor-reset]( https://github.com/hamflx/cursor-reset/blob/main/README.md )   
