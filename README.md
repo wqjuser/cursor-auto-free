@@ -1,6 +1,7 @@
 ## 整合 [cursor-auto-free](https://github.com/chengazhen/cursor-auto-free) 和 [cursor-reset](https://github.com/hamflx/cursor-reset) 两位大佬的开源脚本
 ## 适配Cursor工具0.45.x版本的无限试用
 ## 感谢两位大佬的开源，增加部分功能
+## 感谢 [crazy](https://linux.do/t/topic/404579) 大佬提供的修改文件的功能
 ### 1.增加菜单选项
     1. 恢复原始机器标识
     2. 重置 Cursor
