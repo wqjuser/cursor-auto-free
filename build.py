@@ -99,14 +99,12 @@ def build():
     os.makedirs(output_dir, exist_ok=True)
     simulate_progress("Creating output directory...", 0.5)
 
-    # Run PyInstaller with loading animation
+    # 使用 spec 文件构建
     pyinstaller_command = [
         "pyinstaller",
         spec_file,
-        "--distpath",
-        output_dir,
-        "--workpath",
-        f"build/{system}",
+        "--distpath", output_dir,
+        "--workpath", f"build/{system}",
         "--noconfirm",
     ]
 
@@ -114,65 +112,73 @@ def build():
     try:
         simulate_progress("Running PyInstaller...", 2.0)
         loading.start("Building in progress")
-        result = subprocess.run(
-            pyinstaller_command, check=True, capture_output=True, text=True
+        
+        # 修改这里，添加编码设置
+        process = subprocess.Popen(
+            pyinstaller_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding='utf-8',  # 指定编码
+            errors='ignore'    # 忽略无法解码的字符
         )
+        
+        stdout, stderr = process.communicate()
         loading.stop()
 
-        if result.stderr:
+        if process.returncode != 0:
+            print(f"\033[91mBuild failed with error code {process.returncode}\033[0m")
+            if stderr:
+                print("\033[91mError Details:\033[0m")
+                print(stderr)
+            return
+
+        if stderr:
             filtered_errors = [
-                line
-                for line in result.stderr.split("\n")
-                if any(
-                    keyword in line.lower()
-                    for keyword in ["error:", "failed:", "completed", "directory:"]
-                )
+                line for line in stderr.split("\n")
+                if any(keyword in line.lower() 
+                      for keyword in ["error:", "failed:", "completed", "directory:"])
             ]
             if filtered_errors:
                 print("\033[93mBuild Warnings/Errors:\033[0m")
                 print("\n".join(filtered_errors))
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         loading.stop()
-        print(f"\033[91mBuild failed with error code {e.returncode}\033[0m")
-        if e.stderr:
-            print("\033[91mError Details:\033[0m")
-            print(e.stderr)
-        return
-    except FileNotFoundError:
-        loading.stop()
-        print(
-            "\033[91mError: Please ensure PyInstaller is installed (pip install pyinstaller)\033[0m"
-        )
-        return
-    except KeyboardInterrupt:
-        loading.stop()
-        print("\n\033[91mBuild cancelled by user\033[0m")
+        print(f"\033[91mBuild failed: {str(e)}\033[0m")
         return
     finally:
         loading.stop()
 
-    # Copy config file
-    if os.path.exists("config.ini.example"):
-        simulate_progress("Copying configuration file...", 0.5)
-        if system == "windows":
-            subprocess.run(
-                ["copy", "config.ini.example", f"{output_dir}\\config.ini"], shell=True
-            )
-        else:
-            subprocess.run(["cp", "config.ini.example", f"{output_dir}/config.ini"])
+    # 修改文件复制部分
+    try:
+        # Copy config file
+        if os.path.exists("config.ini.example"):
+            simulate_progress("Copying configuration file...", 0.5)
+            if system == "windows":
+                config_src = os.path.abspath("config.ini.example")
+                config_dst = os.path.join(output_dir, "config.ini")
+                try:
+                    import shutil
+                    shutil.copy2(config_src, config_dst)
+                except Exception as e:
+                    print(f"\033[93mWarning: Failed to copy config file: {e}\033[0m")
 
-    # Copy .env.example file
-    if os.path.exists(".env.example"):
-        simulate_progress("Copying environment file...", 0.5)
-        if system == "windows":
-            subprocess.run(["copy", ".env.example", f"{output_dir}\\.env"], shell=True)
-        else:
-            subprocess.run(["cp", ".env.example", f"{output_dir}/.env"])
+        # Copy .env.example file
+        if os.path.exists(".env.example"):
+            simulate_progress("Copying environment file...", 0.5)
+            if system == "windows":
+                env_src = os.path.abspath(".env.example")
+                env_dst = os.path.join(output_dir, ".env")
+                try:
+                    import shutil
+                    shutil.copy2(env_src, env_dst)
+                except Exception as e:
+                    print(f"\033[93mWarning: Failed to copy env file: {e}\033[0m")
 
-    print(
-        f"\n\033[92mBuild completed successfully! Output directory: {output_dir}\033[0m"
-    )
+    except Exception as e:
+        print(f"\033[93mWarning: File copying failed: {e}\033[0m")
+
+    print(f"\n\033[92mBuild completed successfully! Output directory: {output_dir}\033[0m")
 
 
 if __name__ == "__main__":

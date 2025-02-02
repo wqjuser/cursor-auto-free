@@ -1,5 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import sys
+
+block_cipher = None
+
+# 确定是否是 Windows 系统
+is_windows = sys.platform.startswith('win')
 
 a = Analysis(
     ['cursor_pro_keep_alive.py'],
@@ -8,18 +14,32 @@ a = Analysis(
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
         ('cursor_auth_manager.py', '.'),
+        ('.env', '.'),  # 添加.env文件
+        ('.env.example', '.'),  # 只包含 example 文件
     ],
     hiddenimports=[
-        'cursor_auth_manager'
+        'cursor_auth_manager',
+        'psutil',
+        'DrissionPage',
+        'colorama',
+        'python-dotenv',
+        'exit_cursor',
+        'browser_utils',
+        'get_email_code',
+        'logo',
+        'config'
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
 )
 
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 target_arch = os.environ.get('TARGET_ARCH', None)
 
@@ -36,11 +56,20 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=True,  # 保持控制台窗口
     disable_windowed_traceback=False,
-    argv_emulation=True,  # 对非Mac平台无影响
-    target_arch=target_arch,  # 仅在需要时通过环境变量指定
+    argv_emulation=False,  # Windows 不需要 argv 模拟
+    target_arch=target_arch,
     codesign_identity=None,
     entitlements_file=None,
     icon=None
 )
+
+# 如果在 Mac 上构建
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        exe,
+        name='CursorPro.app',
+        icon=None,
+        bundle_identifier=None,
+    )
