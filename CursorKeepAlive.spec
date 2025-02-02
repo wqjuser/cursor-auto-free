@@ -13,9 +13,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
-        ('cursor_auth_manager.py', '.'),
-        ('.env', '.'),  # 添加.env文件
-        ('.env.example', '.'),  # 只包含 example 文件
+        ('cursor_auth_manager.py', '.')
     ],
     hiddenimports=[
         'cursor_auth_manager',
