@@ -386,96 +386,108 @@ class MachineIDResetter:
             import winreg
             self.winreg = winreg
     
-    def restore_original_machine_id(self):
-        """恢复原始的机器标识"""
-        if self.is_windows:
-            return self._restore_windows_machine_guid()
-        else:
-            return self._remove_fake_ioreg()
-    
-    def _restore_windows_machine_guid(self):
-        """恢复Windows的原始MachineGuid"""
+    def _generate_guid(self):
+        """生成新的GUID"""
+        return str(uuid.uuid4())
+
+    def _reset_windows_machine_guid(self):
+        """重置Windows的MachineGuid"""
         try:
-            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
-            if not os.path.exists(backup_dir):
-                logging.error("未找到备份文件夹")
-                return False
-            
-            # 获取最早的备份文件
-            backup_files = sorted([f for f in os.listdir(backup_dir) if f.startswith("MachineGuid_")])
-            if not backup_files:
-                logging.error("未找到备份文件")
-                return False
-            
-            # 让用户选择要恢复的备份
-            print("\n可用的备份文件：")
-            for i, file in enumerate(backup_files, 1):
-                print(f"{i}. {file}")
-            
-            choice = input("\n请选择要恢复的备份文件编号（默认为1）: ").strip()
-            choice = int(choice) if choice.isdigit() else 1
-            
-            if choice < 1 or choice > len(backup_files):
-                logging.error("无效的选择")
-                return False
-            
-            backup_file = os.path.join(backup_dir, backup_files[choice-1])
-            with open(backup_file, 'r') as f:
-                original_guid = f.read().strip()
-            
-            # 恢复MachineGuid
+            new_guid = self._generate_guid()
             key_path = r"SOFTWARE\Microsoft\Cryptography"
+            
+            # 备份原始MachineGuid
+            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # 读取当前值并备份
+            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0, 
+                                   self.winreg.KEY_READ) as key:
+                current_guid = self.winreg.QueryValueEx(key, "MachineGuid")[0]
+                
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            backup_file = os.path.join(backup_dir, f"MachineGuid_{timestamp}.txt")
+            with open(backup_file, 'w') as f:
+                f.write(current_guid)
+            
+            # 更新MachineGuid
             with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0, 
                                    self.winreg.KEY_SET_VALUE) as key:
-                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, original_guid)
+                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, new_guid)
             
-            logging.info(f"已恢复原始 MachineGuid: {original_guid}")
+            logging.info(f"Windows MachineGuid已更新: {new_guid}")
+            logging.info(f"原始MachineGuid已备份到: {backup_file}")
             return True
-            
         except Exception as e:
-            logging.error(f"恢复 MachineGuid 失败: {str(e)}")
+            logging.error(f"更新Windows MachineGuid失败: {str(e)}")
             return False
-    
-    def _remove_fake_ioreg(self):
-        """移除假的ioreg命令"""
+
+    def _setup_fake_ioreg(self):
+        """设置macOS的假ioreg命令"""
         try:
             real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
             real_home = os.path.expanduser(f'~{real_user}')
             
-            # 移除假命令
+            # 创建假命令目录
             fake_commands_dir = os.path.join(real_home, "fake-commands")
+            os.makedirs(fake_commands_dir, exist_ok=True)
+            
+            # 创建假的ioreg脚本
             ioreg_script = os.path.join(fake_commands_dir, "ioreg")
+            with open(ioreg_script, 'w') as f:
+                f.write('''#!/bin/bash
+if [[ "$*" == *"-rd1 -c IOPlatformExpertDevice"* ]]; then
+    UUID=$(uuidgen)
+    cat << INNEREOF
++-o Root  <class IORegistryEntry, id 0x100000100, retain 12>
+  +-o IOPlatformExpertDevice  <class IOPlatformExpertDevice, id 0x100000110, registered, matched, active, busy 0 (0 ms), retain 35>
+    | {
+    |   "IOPlatformUUID" = "$UUID"
+    | }
+INNEREOF
+else
+    exec /usr/sbin/ioreg "$@"
+fi
+''')
             
-            if os.path.exists(ioreg_script):
-                os.remove(ioreg_script)
-                logging.info("已移除假的 ioreg 命令")
+            # 设置执行权限
+            os.chmod(ioreg_script, 0o755)
             
-            # 从配置文件中移除PATH配置
-            shell_files = [
-                os.path.join(real_home, '.zshrc'),
-                os.path.join(real_home, '.bash_profile'),
-                os.path.join(real_home, '.bashrc'),
-                os.path.join(real_home, '.profile')
-            ]
+            # 配置PATH
+            shell_config_file = None
+            shell = os.environ.get('SHELL', '').split('/')[-1]
             
-            path_line = f'export PATH="{fake_commands_dir}:$PATH"'
-            for shell_file in shell_files:
-                if os.path.exists(shell_file):
-                    with open(shell_file, 'r') as f:
-                        lines = f.readlines()
-                    
-                    with open(shell_file, 'w') as f:
-                        for line in lines:
-                            if path_line not in line:
-                                f.write(line)
+            if shell == 'zsh':
+                shell_config_file = os.path.join(real_home, '.zshrc')
+            elif shell == 'bash':
+                shell_config_file = os.path.join(real_home, '.bash_profile')
+                if not os.path.exists(shell_config_file):
+                    shell_config_file = os.path.join(real_home, '.bashrc')
+            else:
+                shell_config_file = os.path.join(real_home, '.profile')
             
-            logging.info("已从shell配置中移除PATH设置")
-            logging.info("请重新打开终端使更改生效")
+            path_export = f'\nexport PATH="{fake_commands_dir}:$PATH"\n'
+            
+            # 检查配置是否已存在
+            if os.path.exists(shell_config_file):
+                with open(shell_config_file, 'r') as f:
+                    if fake_commands_dir not in f.read():
+                        with open(shell_config_file, 'a') as f:
+                            f.write(path_export)
+            
+            logging.info(f"已创建假的ioreg命令: {ioreg_script}")
+            logging.info(f"PATH配置已添加到: {shell_config_file}")
             return True
-            
         except Exception as e:
-            logging.error(f"移除假ioreg命令失败: {str(e)}")
+            logging.error(f"设置假ioreg命令失败: {str(e)}")
             return False
+
+    def reset_machine_ids(self):
+        """重置机器标识"""
+        if self.is_windows:
+            return self._reset_windows_machine_guid()
+        else:
+            return self._setup_fake_ioreg()
 
 
 def show_menu():
@@ -504,7 +516,7 @@ if __name__ == "__main__":
     if choice == 1:
         # 恢复原始机器标识
         resetter = MachineIDResetter()
-        if resetter.restore_original_machine_id():
+        if resetter.reset_machine_ids():
             print("\n机器标识已恢复")
         else:
             print("\n恢复失败")
