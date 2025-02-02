@@ -1,7 +1,10 @@
 import os
 import subprocess
+import sys
+import getpass
+import ctypes
+
 from exit_cursor import ExitCursor
-from reset_machine import MachineIDResetter
 
 # 禁用不必要的日志输出
 os.environ["PYTHONVERBOSE"] = "0"
@@ -10,7 +13,6 @@ os.environ["PYTHONWARNINGS"] = "ignore"
 
 import time
 import random
-import atexit
 from cursor_auth_manager import CursorAuthManager
 import os
 from logger import logging
@@ -19,6 +21,38 @@ from get_email_code import EmailVerificationHandler
 from logo import print_logo
 from config import Config
 from datetime import datetime
+import uuid
+
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin() if os.name == 'nt' else os.geteuid() == 0
+    except:
+        return False
+
+
+def request_admin():
+    script_path = os.path.abspath(__file__)
+    
+    if os.name == 'nt':  # Windows
+        if not is_admin():
+            try:
+                ctypes.windll.shell32.ShellExecuteW(
+                    None, "runas", sys.executable, script_path, None, 1
+                )
+                sys.exit(0)
+            except Exception as e:
+                print(f"请求管理员权限失败: {e}")
+                sys.exit(1)
+    else:  # macOS/Linux
+        if not is_admin():
+            try:
+                cmd = ['pkexec', sys.executable, script_path] if os.path.exists('/usr/bin/pkexec') else ['sudo', sys.executable, script_path]
+                subprocess.run(cmd, check=True)
+                sys.exit(0)
+            except subprocess.CalledProcessError:
+                print("请求管理员权限失败")
+                sys.exit(1)
 
 
 def save_screenshot(tab, prefix="turnstile"):
@@ -109,7 +143,8 @@ def handle_turnstile(tab, max_wait_time=60, retry_attempts=3):
                             # 检查验证失败的标志，使用更精确的选择器
                             error_selectors = [
                                 "@data-accent-color=red",  # 红色提示div
-                                f"//div[contains(@class, 'rt-Text') and contains(text(), '{error_text}')]",  # 包含特定类和文本的div
+                                f"//div[contains(@class, 'rt-Text') and contains(text(), '{error_text}')]",
+                                # 包含特定类和文本的div
                                 f"//div[@data-accent-color='red' and contains(text(), '{error_text}')]",  # 最精确的选择器
                             ]
 
@@ -266,7 +301,7 @@ def sign_up_account(browser, tab):
     handle_turnstile(tab)
     wait_time = random.randint(3, 6)
     for i in range(wait_time):
-        logging.info(f"等待系统处理中... 剩余 {wait_time-i} 秒")
+        logging.info(f"等待系统处理中... 剩余 {wait_time - i} 秒")
         time.sleep(1)
 
     logging.info("正在获取账户信息...")
@@ -294,13 +329,13 @@ def sign_up_account(browser, tab):
 
 class EmailGenerator:
     def __init__(
-        self,
-        password="".join(
-            random.choices(
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*",
-                k=12,
-            )
-        ),
+            self,
+            password="".join(
+                random.choices(
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*",
+                    k=12,
+                )
+            ),
     ):
         configInstance = Config()
         configInstance.print_config()
@@ -348,8 +383,139 @@ def get_user_agent():
         return None
 
 
+class MachineIDResetter:
+    def __init__(self):
+        self.is_windows = os.name == 'nt'
+        if self.is_windows:
+            import winreg
+            self.winreg = winreg
+    
+    def restore_original_machine_id(self):
+        """恢复原始的机器标识"""
+        if self.is_windows:
+            return self._restore_windows_machine_guid()
+        else:
+            return self._remove_fake_ioreg()
+    
+    def _restore_windows_machine_guid(self):
+        """恢复Windows的原始MachineGuid"""
+        try:
+            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
+            if not os.path.exists(backup_dir):
+                logging.error("未找到备份文件夹")
+                return False
+            
+            # 获取最早的备份文件
+            backup_files = sorted([f for f in os.listdir(backup_dir) if f.startswith("MachineGuid_")])
+            if not backup_files:
+                logging.error("未找到备份文件")
+                return False
+            
+            # 让用户选择要恢复的备份
+            print("\n可用的备份文件：")
+            for i, file in enumerate(backup_files, 1):
+                print(f"{i}. {file}")
+            
+            choice = input("\n请选择要恢复的备份文件编号（默认为1）: ").strip()
+            choice = int(choice) if choice.isdigit() else 1
+            
+            if choice < 1 or choice > len(backup_files):
+                logging.error("无效的选择")
+                return False
+            
+            backup_file = os.path.join(backup_dir, backup_files[choice-1])
+            with open(backup_file, 'r') as f:
+                original_guid = f.read().strip()
+            
+            # 恢复MachineGuid
+            key_path = r"SOFTWARE\Microsoft\Cryptography"
+            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0, 
+                                   self.winreg.KEY_SET_VALUE) as key:
+                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, original_guid)
+            
+            logging.info(f"已恢复原始 MachineGuid: {original_guid}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"恢复 MachineGuid 失败: {str(e)}")
+            return False
+    
+    def _remove_fake_ioreg(self):
+        """移除假的ioreg命令"""
+        try:
+            real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
+            real_home = os.path.expanduser(f'~{real_user}')
+            
+            # 移除假命令
+            fake_commands_dir = os.path.join(real_home, "fake-commands")
+            ioreg_script = os.path.join(fake_commands_dir, "ioreg")
+            
+            if os.path.exists(ioreg_script):
+                os.remove(ioreg_script)
+                logging.info("已移除假的 ioreg 命令")
+            
+            # 从配置文件中移除PATH配置
+            shell_files = [
+                os.path.join(real_home, '.zshrc'),
+                os.path.join(real_home, '.bash_profile'),
+                os.path.join(real_home, '.bashrc'),
+                os.path.join(real_home, '.profile')
+            ]
+            
+            path_line = f'export PATH="{fake_commands_dir}:$PATH"'
+            for shell_file in shell_files:
+                if os.path.exists(shell_file):
+                    with open(shell_file, 'r') as f:
+                        lines = f.readlines()
+                    
+                    with open(shell_file, 'w') as f:
+                        for line in lines:
+                            if path_line not in line:
+                                f.write(line)
+            
+            logging.info("已从shell配置中移除PATH设置")
+            logging.info("请重新打开终端使更改生效")
+            return True
+            
+        except Exception as e:
+            logging.error(f"移除假ioreg命令失败: {str(e)}")
+            return False
+
+
+def show_menu():
+    """显示功能选择菜单"""
+    print("\n=== Cursor 工具 ===")
+    print("1. 恢复原始机器标识")
+    print("2. 重置 Cursor")
+    
+    while True:
+        choice = input("\n请选择功能 (1-2): ").strip()
+        if choice in ['1', '2']:
+            return int(choice)
+        print("无效的选择，请重试")
+
+
 if __name__ == "__main__":
+    if not is_admin():
+        request_admin()
+    
     print_logo()
+    
+    choice = show_menu()
+    
+    if choice == 1:
+        # 恢复原始机器标识
+        resetter = MachineIDResetter()
+        if resetter.restore_original_machine_id():
+            print("\n机器标识已恢复")
+        else:
+            print("\n恢复失败")
+        
+        print("\n按回车键退出...", end='', flush=True)
+        input()
+        os._exit(0)
+    
+    # 原有的重置逻辑
     browser_manager = None
     try:
         logging.info("\n=== 初始化程序 ===")
@@ -409,7 +575,7 @@ if __name__ == "__main__":
 
                 logging.info("重置机器码...")
                 MachineIDResetter().reset_machine_ids()
-                
+
                 logging.info("所有操作已完成")
             else:
                 logging.error("获取会话令牌失败，注册流程未完成")
@@ -424,13 +590,13 @@ if __name__ == "__main__":
         if browser_manager:
             browser_manager.quit()
             browser_manager = None
-        
+
         print("\n程序执行完毕，按回车键退出...", end='', flush=True)
         try:
             input()
         except (KeyboardInterrupt, EOFError):
             pass
-        
+
         # 重启Cursor并退出
         if cursor_path:
             try:
@@ -444,6 +610,6 @@ if __name__ == "__main__":
                 logging.info("Cursor 已重新启动")
             except Exception as e:
                 logging.error(f"重启 Cursor 失败: {str(e)}")
-        
+
         # 强制退出程序
         os._exit(0)
