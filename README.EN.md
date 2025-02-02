@@ -1,6 +1,7 @@
 ## Integration [cursor auto free]（ https://github.com/chengazhen/cursor-auto-free ）And [cursor reset]（ https://github.com/hamflx/cursor-reset ）The open-source scripts of two big shots
 ## Unlimited trial of cursor tool 0.45. x version adaptation
 ## Thank you to the two experts for their open-source efforts and the addition of some features
+## Thank you [razy]（ https://linux.do/t/topic/404579 ）The function of modifying files provided by experts
 ### 1. Add menu options
     1. Restore the original machine identification
     2. Reset cursor
