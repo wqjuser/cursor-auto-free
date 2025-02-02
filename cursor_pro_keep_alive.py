@@ -47,7 +47,7 @@ def request_admin():
     else:  # macOS/Linux
         if not is_admin():
             print("\n需要管理员权限来运行此程序。")
-            print(f"请使用以下命令运行：\nsudo python3 {script_path}")
+            print(f"请使用以下命令运行：\nsudo 脚本路径")
             sys.exit(1)
 
 
