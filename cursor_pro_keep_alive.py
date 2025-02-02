@@ -46,13 +46,9 @@ def request_admin():
                 sys.exit(1)
     else:  # macOS/Linux
         if not is_admin():
-            try:
-                cmd = ['pkexec', sys.executable, script_path] if os.path.exists('/usr/bin/pkexec') else ['sudo', sys.executable, script_path]
-                subprocess.run(cmd, check=True)
-                sys.exit(0)
-            except subprocess.CalledProcessError:
-                print("请求管理员权限失败")
-                sys.exit(1)
+            print("\n需要管理员权限来运行此程序。")
+            print(f"请使用以下命令运行：\nsudo python3 {script_path}")
+            sys.exit(1)
 
 
 def save_screenshot(tab, prefix="turnstile"):
