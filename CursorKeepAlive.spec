@@ -13,7 +13,8 @@ a = Analysis(
     binaries=[],
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
-        ('cursor_auth_manager.py', '.')
+        ('cursor_auth_manager.py', '.'),
+        ('patch_cursor_get_machine_id.py', '.')
     ],
     hiddenimports=[
         'cursor_auth_manager',
@@ -25,7 +26,8 @@ a = Analysis(
         'browser_utils',
         'get_email_code',
         'logo',
-        'config'
+        'config',
+        'patch_cursor_get_machine_id'
     ],
     hookspath=[],
     hooksconfig={},

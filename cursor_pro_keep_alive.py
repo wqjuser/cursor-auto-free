@@ -483,10 +483,12 @@ def show_menu():
     print("\n=== Cursor 工具 ===")
     print("1. 恢复原始机器标识")
     print("2. 重置 Cursor")
+    print("3. 修改 Cursor 文件(仅限Cursor 0.45.x版本)")
+    print("4. 恢复 Cursor 文件(仅限Cursor 0.45.x版本)")
     
     while True:
-        choice = input("\n请选择功能 (1-2): ").strip()
-        if choice in ['1', '2']:
+        choice = input("\n请选择功能 (1-4): ").strip()
+        if choice in ['1', '2', '3', '4']:
             return int(choice)
         print("无效的选择，请重试")
 
@@ -510,6 +512,97 @@ if __name__ == "__main__":
         print("\n按回车键退出...", end='', flush=True)
         input()
         os._exit(0)
+    elif choice == 3:
+        # 修改 Cursor 文件
+        try:
+            # 提示用户确认
+            print("\n警告：接下来的操作将会修改 Cursor 的程序文件(会自动备份该文件)")
+            confirm = input("\n是否继续？(y/n): ").strip().lower()
+            if confirm != 'y':
+                print("\n操作已取消")
+                print("\n按回车键退出...", end='', flush=True)
+                input()
+                os._exit(0)
+
+            # 检查并等待 Cursor 退出
+            success, cursor_path = ExitCursor()
+            if not success:
+                print("\n请先关闭 Cursor 程序后再继续")
+                print("\n按回车键退出...", end='', flush=True)
+                input()
+                os._exit(1)
+
+            print("\n正在修改 Cursor 文件...")
+            import patch_cursor_get_machine_id
+            patch_cursor_get_machine_id.main()
+            
+            print("\n修改完成！")
+            print("现在可以重新启动 Cursor 了。")
+            
+            # 询问是否自动启动 Cursor
+            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
+            if restart == 'y':
+                try:
+                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                    if os.name == 'nt':
+                        startupinfo = subprocess.STARTUPINFO()
+                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+                    else:
+                        subprocess.Popen(['open', cursor_path])
+                    logging.info("Cursor 已重新启动")
+                except Exception as e:
+                    logging.error(f"重启 Cursor 失败: {str(e)}")
+            
+            print("\n按回车键退出...", end='', flush=True)
+            input()
+            os._exit(0)
+        except Exception as e:
+            logging.error(f"修改 Cursor 文件失败: {str(e)}")
+            print("\n修改失败，按回车键退出...", end='', flush=True)
+            input()
+            os._exit(1)
+    elif choice == 4:
+        # 恢复 Cursor 文件备份
+        try:
+            # 检查并等待 Cursor 退出
+            success, cursor_path = ExitCursor()
+            if not success:
+                print("\n请先关闭 Cursor 程序后再继续")
+                print("\n按回车键退出...", end='', flush=True)
+                input()
+                os._exit(1)
+
+            print("\n正在恢复 Cursor 文件备份...")
+            import patch_cursor_get_machine_id
+            patch_cursor_get_machine_id.main(restore_mode=True)
+            
+            print("\n恢复完成！")
+            print("现在可以重新启动 Cursor 了。")
+            
+            # 询问是否自动启动 Cursor
+            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
+            if restart == 'y':
+                try:
+                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                    if os.name == 'nt':
+                        startupinfo = subprocess.STARTUPINFO()
+                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+                    else:
+                        subprocess.Popen(['open', cursor_path])
+                    logging.info("Cursor 已重新启动")
+                except Exception as e:
+                    logging.error(f"重启 Cursor 失败: {str(e)}")
+            
+            print("\n按回车键退出...", end='', flush=True)
+            input()
+            os._exit(0)
+        except Exception as e:
+            logging.error(f"恢复 Cursor 文件备份失败: {str(e)}")
+            print("\n恢复失败，按回车键退出...", end='', flush=True)
+            input()
+            os._exit(1)
     
     # 原有的重置逻辑
     browser_manager = None
