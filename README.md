@@ -10,7 +10,7 @@
 
 如果您认可 Cursor 的价值，请支持正版，为软件开发者的工作付费。
 
-## 此工具仅向大家提供了一个试用Cursor的渠道，请勿过分依赖。此工具免费，请勿用来售卖。
+## 此工具仅向大家提供了一个试用Cursor的渠道，请勿过分依赖。此工具免费，请勿用来售卖。直接从右侧release中下载对应系统的可执行文件运行即可
 ## 整合 [cursor-auto-free](https://github.com/chengazhen/cursor-auto-free) 和 [cursor-reset](https://github.com/hamflx/cursor-reset) 两位大佬的开源脚本
 ## 适配Cursor工具0.45.x版本的无限试用
 ## 感谢两位大佬的开源，增加部分功能
