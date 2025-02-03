@@ -1,3 +1,14 @@
+## ⚠️ Disclaimer
+This project is for learning and research purposes only, aiming to study the device identification mechanism of cursor IDE** We strongly recommend that you purchase [Coursor]（ https://cursor.sh/ ）Authentic authorization * * to support developers.
+
+Using this script may violate the terms of use of Cursor. The author is not responsible for any issues caused by the use of this script, including but not limited to:
+
+-Software authorization has expired
+-Account ban
+-Other unknown risks
+
+If you recognize the value of cursor, please support the genuine version and pay for the work of software developers.
+
 ## Integration [cursor auto free]（ https://github.com/chengazhen/cursor-auto-free ）And [cursor reset]（ https://github.com/hamflx/cursor-reset ）The open-source scripts of two big shots
 ## Unlimited trial of cursor tool 0.45. x version adaptation
 ## Thank you to the two experts for their open-source efforts and the addition of some features
