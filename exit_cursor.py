@@ -2,7 +2,7 @@ import psutil
 from logger import logging  
 import time
 
-def ExitCursor(timeout=5):
+def ExitCursor(timeout=8):
     """
     温和地关闭 Cursor 进程并返回进程文件路径
     
@@ -66,7 +66,7 @@ def ExitCursor(timeout=5):
                 logging.info("所有 Cursor 进程已正常关闭")
                 return True, cursor_path
                 
-            time.sleep(0.5)
+            time.sleep(3)
             
         # 如果超时后仍有进程在运行
         if still_running:

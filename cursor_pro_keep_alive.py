@@ -596,6 +596,27 @@ def show_menu():
         print("无效的选择，请重试")
 
 
+def restart_cursor():
+    global restart, startupinfo, e
+    if cursor_path:
+        print("现在可以重新启动 Cursor 了。")
+
+        # 询问是否自动启动 Cursor
+        restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
+        if restart == 'y':
+            try:
+                logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+                else:
+                    subprocess.Popen(['open', cursor_path])
+                logging.info("Cursor 已重新启动")
+            except Exception as e:
+                logging.error(f"重启 Cursor 失败: {str(e)}")
+
+
 if __name__ == "__main__":
     if not is_admin():
         request_admin()
@@ -641,23 +662,7 @@ if __name__ == "__main__":
             patch_cursor_get_machine_id.main()
 
             print("\n修改完成！")
-            print("现在可以重新启动 Cursor 了。")
-
-            # 询问是否自动启动 Cursor
-            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
-            if restart == 'y':
-                try:
-                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                    if os.name == 'nt':
-                        startupinfo = subprocess.STARTUPINFO()
-                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                    else:
-                        subprocess.Popen(['open', cursor_path])
-                    logging.info("Cursor 已重新启动")
-                except Exception as e:
-                    logging.error(f"重启 Cursor 失败: {str(e)}")
-
+            restart_cursor()
             print("\n按回车键退出...", end='', flush=True)
             input()
             os._exit(0)
@@ -683,22 +688,8 @@ if __name__ == "__main__":
             patch_cursor_get_machine_id.main(restore_mode=True)
 
             print("\n恢复完成！")
-            print("现在可以重新启动 Cursor 了。")
 
-            # 询问是否自动启动 Cursor
-            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
-            if restart == 'y':
-                try:
-                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                    if os.name == 'nt':
-                        startupinfo = subprocess.STARTUPINFO()
-                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                    else:
-                        subprocess.Popen(['open', cursor_path])
-                    logging.info("Cursor 已重新启动")
-                except Exception as e:
-                    logging.error(f"重启 Cursor 失败: {str(e)}")
+            restart_cursor()
 
             print("\n按回车键退出...", end='', flush=True)
             input()
