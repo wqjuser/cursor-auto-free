@@ -83,11 +83,11 @@ def get_cursor_paths() -> Tuple[str, str]:
 def check_system_requirements(pkg_path: str, main_path: str) -> bool:
     """
     检查系统要求
-    
+
     Args:
         pkg_path: package.json 文件路径
         main_path: main.js 文件路径
-        
+
     Returns:
         bool: 检查是否通过
     """
@@ -152,6 +152,12 @@ def modify_main_js(main_path: str) -> bool:
         bool: 修改是否成功
     """
     try:
+        # 获取原始文件的权限和所有者信息
+        original_stat = os.stat(main_path)
+        original_mode = original_stat.st_mode
+        original_uid = original_stat.st_uid
+        original_gid = original_stat.st_gid
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
             with open(main_path, "r", encoding="utf-8") as main_file:
                 content = main_file.read()
@@ -171,6 +177,12 @@ def modify_main_js(main_path: str) -> bool:
         # 使用 shutil.copy2 保留文件权限
         shutil.copy2(main_path, main_path + ".old")
         shutil.move(tmp_path, main_path)
+
+        # 恢复原始文件的权限和所有者
+        os.chmod(main_path, original_mode)
+        if os.name != 'nt':  # 在非Windows系统上设置所有者
+            os.chown(main_path, original_uid, original_gid)
+
         logger.info("文件修改成功")
         return True
 
@@ -184,11 +196,11 @@ def modify_main_js(main_path: str) -> bool:
 def backup_files(pkg_path: str, main_path: str) -> bool:
     """
     备份原始文件
-    
+
     Args:
         pkg_path: package.json 文件路径（未使用）
         main_path: main.js 文件路径
-        
+
     Returns:
         bool: 备份是否成功
     """
@@ -198,7 +210,7 @@ def backup_files(pkg_path: str, main_path: str) -> bool:
             backup_main = f"{main_path}.bak"
             shutil.copy2(main_path, backup_main)
             logger.info(f"已备份 main.js: {backup_main}")
-            
+
         return True
     except Exception as e:
         logger.error(f"备份文件失败: {str(e)}")
@@ -208,11 +220,11 @@ def backup_files(pkg_path: str, main_path: str) -> bool:
 def restore_backup_files(pkg_path: str, main_path: str) -> bool:
     """
     恢复备份文件
-    
+
     Args:
         pkg_path: package.json 文件路径（未使用）
         main_path: main.js 文件路径
-        
+
     Returns:
         bool: 恢复是否成功
     """
@@ -223,7 +235,7 @@ def restore_backup_files(pkg_path: str, main_path: str) -> bool:
             shutil.copy2(backup_main, main_path)
             logger.info(f"已恢复 main.js")
             return True
-            
+
         logger.error("未找到备份文件")
         return False
     except Exception as e:
@@ -234,7 +246,7 @@ def restore_backup_files(pkg_path: str, main_path: str) -> bool:
 def main(restore_mode=False) -> None:
     """
     主函数
-    
+
     Args:
         restore_mode: 是否为恢复模式
     """

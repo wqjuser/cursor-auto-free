@@ -33,7 +33,7 @@ def is_admin():
 
 def request_admin():
     script_path = os.path.abspath(__file__)
-    
+
     if os.name == 'nt':  # Windows
         if not is_admin():
             try:
@@ -385,7 +385,98 @@ class MachineIDResetter:
         if self.is_windows:
             import winreg
             self.winreg = winreg
-    
+
+    def restore_original_machine_id(self):
+        """恢复原始的机器标识"""
+        if self.is_windows:
+            return self._restore_windows_machine_guid()
+        else:
+            return self._remove_fake_ioreg()
+
+    def _restore_windows_machine_guid(self):
+        """恢复Windows的原始MachineGuid"""
+        try:
+            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
+            if not os.path.exists(backup_dir):
+                logging.error("未找到备份文件夹")
+                return False
+
+            # 获取所有备份文件
+            backup_files = sorted([f for f in os.listdir(backup_dir) if f.startswith("MachineGuid_")])
+            if not backup_files:
+                logging.error("未找到备份文件")
+                return False
+
+            # 让用户选择要恢复的备份
+            print("\n可用的备份文件：")
+            for i, file in enumerate(backup_files, 1):
+                print(f"{i}. {file}")
+
+            choice = input("\n请选择要恢复的备份文件编号（默认为1）: ").strip()
+            choice = int(choice) if choice.isdigit() else 1
+
+            if choice < 1 or choice > len(backup_files):
+                logging.error("无效的选择")
+                return False
+
+            backup_file = os.path.join(backup_dir, backup_files[choice - 1])
+            with open(backup_file, 'r') as f:
+                original_guid = f.read().strip()
+
+            # 恢复MachineGuid
+            key_path = r"SOFTWARE\Microsoft\Cryptography"
+            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                     self.winreg.KEY_SET_VALUE) as key:
+                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, original_guid)
+
+            logging.info(f"已恢复原始 MachineGuid: {original_guid}")
+            return True
+
+        except Exception as e:
+            logging.error(f"恢复 MachineGuid 失败: {str(e)}")
+            return False
+
+    def _remove_fake_ioreg(self):
+        """移除假的ioreg命令"""
+        try:
+            real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
+            real_home = os.path.expanduser(f'~{real_user}')
+
+            # 移除假命令
+            fake_commands_dir = os.path.join(real_home, "fake-commands")
+            ioreg_script = os.path.join(fake_commands_dir, "ioreg")
+
+            if os.path.exists(ioreg_script):
+                os.remove(ioreg_script)
+                logging.info("已移除假的 ioreg 命令")
+
+            # 从配置文件中移除PATH配置
+            shell_files = [
+                os.path.join(real_home, '.zshrc'),
+                os.path.join(real_home, '.bash_profile'),
+                os.path.join(real_home, '.bashrc'),
+                os.path.join(real_home, '.profile')
+            ]
+
+            path_line = f'export PATH="{fake_commands_dir}:$PATH"'
+            for shell_file in shell_files:
+                if os.path.exists(shell_file):
+                    with open(shell_file, 'r') as f:
+                        lines = f.readlines()
+
+                    with open(shell_file, 'w') as f:
+                        for line in lines:
+                            if path_line not in line:
+                                f.write(line)
+
+            logging.info("已从shell配置中移除PATH设置")
+            logging.info("请重新打开终端使更改生效")
+            return True
+
+        except Exception as e:
+            logging.error(f"移除假ioreg命令失败: {str(e)}")
+            return False
+
     def _generate_guid(self):
         """生成新的GUID"""
         return str(uuid.uuid4())
@@ -395,26 +486,26 @@ class MachineIDResetter:
         try:
             new_guid = self._generate_guid()
             key_path = r"SOFTWARE\Microsoft\Cryptography"
-            
+
             # 备份原始MachineGuid
             backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
             os.makedirs(backup_dir, exist_ok=True)
-            
+
             # 读取当前值并备份
-            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0, 
-                                   self.winreg.KEY_READ) as key:
+            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                     self.winreg.KEY_READ) as key:
                 current_guid = self.winreg.QueryValueEx(key, "MachineGuid")[0]
-                
+
             timestamp = time.strftime("%Y%m%d_%H%M%S")
             backup_file = os.path.join(backup_dir, f"MachineGuid_{timestamp}.txt")
             with open(backup_file, 'w') as f:
                 f.write(current_guid)
-            
+
             # 更新MachineGuid
-            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0, 
-                                   self.winreg.KEY_SET_VALUE) as key:
+            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
+                                     self.winreg.KEY_SET_VALUE) as key:
                 self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, new_guid)
-            
+
             logging.info(f"Windows MachineGuid已更新: {new_guid}")
             logging.info(f"原始MachineGuid已备份到: {backup_file}")
             return True
@@ -427,11 +518,11 @@ class MachineIDResetter:
         try:
             real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
             real_home = os.path.expanduser(f'~{real_user}')
-            
+
             # 创建假命令目录
             fake_commands_dir = os.path.join(real_home, "fake-commands")
             os.makedirs(fake_commands_dir, exist_ok=True)
-            
+
             # 创建假的ioreg脚本
             ioreg_script = os.path.join(fake_commands_dir, "ioreg")
             with open(ioreg_script, 'w') as f:
@@ -449,14 +540,14 @@ else
     exec /usr/sbin/ioreg "$@"
 fi
 ''')
-            
+
             # 设置执行权限
             os.chmod(ioreg_script, 0o755)
-            
+
             # 配置PATH
             shell_config_file = None
             shell = os.environ.get('SHELL', '').split('/')[-1]
-            
+
             if shell == 'zsh':
                 shell_config_file = os.path.join(real_home, '.zshrc')
             elif shell == 'bash':
@@ -465,16 +556,16 @@ fi
                     shell_config_file = os.path.join(real_home, '.bashrc')
             else:
                 shell_config_file = os.path.join(real_home, '.profile')
-            
+
             path_export = f'\nexport PATH="{fake_commands_dir}:$PATH"\n'
-            
+
             # 检查配置是否已存在
             if os.path.exists(shell_config_file):
                 with open(shell_config_file, 'r') as f:
                     if fake_commands_dir not in f.read():
                         with open(shell_config_file, 'a') as f:
                             f.write(path_export)
-            
+
             logging.info(f"已创建假的ioreg命令: {ioreg_script}")
             logging.info(f"PATH配置已添加到: {shell_config_file}")
             return True
@@ -497,7 +588,7 @@ def show_menu():
     print("2. 重置 Cursor")
     print("3. 修改 Cursor 文件(仅限Cursor 0.45.x版本)")
     print("4. 恢复 Cursor 文件(仅限Cursor 0.45.x版本)")
-    
+
     while True:
         choice = input("\n请选择功能 (1-4): ").strip()
         if choice in ['1', '2', '3', '4']:
@@ -505,22 +596,43 @@ def show_menu():
         print("无效的选择，请重试")
 
 
+def restart_cursor():
+    global restart, startupinfo, e
+    if cursor_path:
+        print("现在可以重新启动 Cursor 了。")
+
+        # 询问是否自动启动 Cursor
+        restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
+        if restart == 'y':
+            try:
+                logging.info(f"正在重新启动 Cursor: {cursor_path}")
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+                else:
+                    subprocess.Popen(['open', cursor_path])
+                logging.info("Cursor 已重新启动")
+            except Exception as e:
+                logging.error(f"重启 Cursor 失败: {str(e)}")
+
+
 if __name__ == "__main__":
     if not is_admin():
         request_admin()
-    
+
     print_logo()
-    
+
     choice = show_menu()
-    
+
     if choice == 1:
         # 恢复原始机器标识
         resetter = MachineIDResetter()
-        if resetter.reset_machine_ids():
+        if resetter.restore_original_machine_id():
             print("\n机器标识已恢复")
         else:
             print("\n恢复失败")
-        
+
         print("\n按回车键退出...", end='', flush=True)
         input()
         os._exit(0)
@@ -546,26 +658,11 @@ if __name__ == "__main__":
 
             print("\n正在修改 Cursor 文件...")
             import patch_cursor_get_machine_id
+
             patch_cursor_get_machine_id.main()
-            
+
             print("\n修改完成！")
-            print("现在可以重新启动 Cursor 了。")
-            
-            # 询问是否自动启动 Cursor
-            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
-            if restart == 'y':
-                try:
-                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                    if os.name == 'nt':
-                        startupinfo = subprocess.STARTUPINFO()
-                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                    else:
-                        subprocess.Popen(['open', cursor_path])
-                    logging.info("Cursor 已重新启动")
-                except Exception as e:
-                    logging.error(f"重启 Cursor 失败: {str(e)}")
-            
+            restart_cursor()
             print("\n按回车键退出...", end='', flush=True)
             input()
             os._exit(0)
@@ -587,26 +684,13 @@ if __name__ == "__main__":
 
             print("\n正在恢复 Cursor 文件备份...")
             import patch_cursor_get_machine_id
+
             patch_cursor_get_machine_id.main(restore_mode=True)
-            
+
             print("\n恢复完成！")
-            print("现在可以重新启动 Cursor 了。")
-            
-            # 询问是否自动启动 Cursor
-            restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
-            if restart == 'y':
-                try:
-                    logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                    if os.name == 'nt':
-                        startupinfo = subprocess.STARTUPINFO()
-                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                        subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                    else:
-                        subprocess.Popen(['open', cursor_path])
-                    logging.info("Cursor 已重新启动")
-                except Exception as e:
-                    logging.error(f"重启 Cursor 失败: {str(e)}")
-            
+
+            restart_cursor()
+
             print("\n按回车键退出...", end='', flush=True)
             input()
             os._exit(0)
@@ -615,7 +699,7 @@ if __name__ == "__main__":
             print("\n恢复失败，按回车键退出...", end='', flush=True)
             input()
             os._exit(1)
-    
+
     # 原有的重置逻辑
     browser_manager = None
     try:
