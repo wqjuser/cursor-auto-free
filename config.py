@@ -17,24 +17,34 @@ class Config:
         # 指定 .env 文件的路径
         dotenv_path = os.path.join(application_path, ".env")
 
-        if not os.path.exists(dotenv_path):
-            raise FileNotFoundError(f"文件 {dotenv_path} 不存在")
-
-        # 加载 .env 文件
-        load_dotenv(dotenv_path)
-
+        # 设置默认值
         self.imap = False
-        self.temp_mail = os.getenv("TEMP_MAIL", "").strip().split("@")[0]
-        self.domain = os.getenv("DOMAIN", "").strip()
+        self.temp_mail = "wqj666"  # 默认设置为 wqj666
+        self.domain = "wqj666.ggff.net"
 
-        # 如果临时邮箱为null则加载IMAP
-        if self.temp_mail == "null":
-            self.imap = True
-            self.imap_server = os.getenv("IMAP_SERVER", "").strip()
-            self.imap_port = os.getenv("IMAP_PORT", "").strip()
-            self.imap_user = os.getenv("IMAP_USER", "").strip()
-            self.imap_pass = os.getenv("IMAP_PASS", "").strip()
-            self.imap_dir = os.getenv("IMAP_DIR", "inbox").strip()
+        # 如果.env文件存在，则读取配置
+        if os.path.exists(dotenv_path):
+            # 加载 .env 文件
+            load_dotenv(dotenv_path)
+            
+            self.domain = os.getenv("DOMAIN", "").strip()
+            env_temp_mail = os.getenv("TEMP_MAIL", "").strip()
+            
+            # 只有当环境变量中存在 TEMP_MAIL 时才覆盖默认值
+            if env_temp_mail:
+                self.temp_mail = env_temp_mail.split("@")[0]
+
+            # 如果临时邮箱为null则加载IMAP
+            if self.temp_mail == "null":
+                self.imap = True
+                self.imap_server = os.getenv("IMAP_SERVER", "").strip()
+                self.imap_port = os.getenv("IMAP_PORT", "").strip()
+                self.imap_user = os.getenv("IMAP_USER", "").strip()
+                self.imap_pass = os.getenv("IMAP_PASS", "").strip()
+                self.imap_dir = os.getenv("IMAP_DIR", "inbox").strip()
+        else:
+            logging.info("\033[33m未找到.env文件，使用默认配置\033[0m")
+            self.print_config()
 
         self.check_config()
 
