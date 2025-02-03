@@ -152,6 +152,12 @@ def modify_main_js(main_path: str) -> bool:
         bool: 修改是否成功
     """
     try:
+        # 获取原始文件的权限和所有者信息
+        original_stat = os.stat(main_path)
+        original_mode = original_stat.st_mode
+        original_uid = original_stat.st_uid
+        original_gid = original_stat.st_gid
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
             with open(main_path, "r", encoding="utf-8") as main_file:
                 content = main_file.read()
@@ -171,6 +177,12 @@ def modify_main_js(main_path: str) -> bool:
         # 使用 shutil.copy2 保留文件权限
         shutil.copy2(main_path, main_path + ".old")
         shutil.move(tmp_path, main_path)
+
+        # 恢复原始文件的权限和所有者
+        os.chmod(main_path, original_mode)
+        if os.name != 'nt':  # 在非Windows系统上设置所有者
+            os.chown(main_path, original_uid, original_gid)
+
         logger.info("文件修改成功")
         return True
 
