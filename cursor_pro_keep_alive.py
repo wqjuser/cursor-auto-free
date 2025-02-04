@@ -451,15 +451,25 @@ if __name__ == "__main__":
     cursor_path = ""
 
     if choice == 3:
-        MachineIDResetter().restore_machine_ids()
-        print("\n文件或设备信息恢复成功，按回车键退出...", end='', flush=True)
-        input()
-        sys.exit(0)
+        success, _ = ExitCursor()
+        if success:
+            MachineIDResetter().restore_machine_ids()
+            print("\n文件或设备信息恢复成功，按回车键退出...", end='', flush=True)
+            input()
+            sys.exit(0)
+        else:
+            print("Cursor 未能自动关闭，请手动关闭后重试")    
+
     elif choice == 2:
-        MachineIDResetter().reset_machine_ids()
-        print("\n文件或设备信息修改成功，按回车键退出...", end='', flush=True)
-        input()
-        sys.exit(0)
+        success, _ = ExitCursor()
+        if success:
+            MachineIDResetter().reset_machine_ids()
+            print("\n文件或设备信息修改成功，按回车键退出...", end='', flush=True)
+            input()
+            sys.exit(0)
+        else:
+            print("Cursor 未能自动关闭，请手动关闭后重试")    
+
     # 原有的重置逻辑
     browser_manager = None
     is_success = False
