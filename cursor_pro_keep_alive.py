@@ -425,14 +425,17 @@ class MachineIDResetter:
 
             # 生成随机 MAC 地址
             def generate_mac():
-                # 生成第一个字节，确保是偶数（本地管理的MAC地址）
-                first_byte = random.randint(0, 255) & 0xfe  # 确保最后一位是0
-                # 生成剩余的字节
-                other_bytes = [random.randint(0, 255) for _ in range(5)]
-                # 组合所有字节
-                all_bytes = [first_byte] + other_bytes
-                # 格式化为MAC地址格式
-                return ':'.join([f'{b:02x}' for b in all_bytes])
+                # 使用常见的制造商前缀
+                prefixes = [
+                    'a4:83:e7',  # Apple, Inc.
+                    'a4:5e:60',  # Apple, Inc.
+                    'ac:bc:32',  # Apple, Inc.
+                    'b8:e8:56',  # Apple, Inc.
+                ]
+                prefix = random.choice(prefixes)
+                # 生成后三个字节
+                suffix = ':'.join([f'{random.randint(0, 255):02x}' for _ in range(3)])
+                return f"{prefix}:{suffix}"
 
             new_mac = generate_mac()
             logging.info(f"正在修改 MAC 地址: {new_mac}")
@@ -445,9 +448,17 @@ class MachineIDResetter:
                 # 等待接口完全关闭
                 time.sleep(1)
                 
-                # 使用 macchanger 修改 MAC 地址
+                # 使用 sudo 运行命令
                 subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'ether', new_mac
+                    'sudo', 'ifconfig', wifi_device, 'down'
+                ], check=True)
+                
+                subprocess.run([
+                    'sudo', 'ifconfig', wifi_device, 'lladdr', new_mac
+                ], check=True)
+                
+                subprocess.run([
+                    'sudo', 'ifconfig', wifi_device, 'up'
                 ], check=True)
                 
                 # 等待修改生效
