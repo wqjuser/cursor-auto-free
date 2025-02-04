@@ -7,7 +7,7 @@ import time
 import logging
 import os
 import sys
-from spoofmac.interface import set_interface_mac, get_interface_mac
+from spoofmac.interface import set_interface_mac
 
 # 配置日志
 def setup_logging():
@@ -31,6 +31,21 @@ def is_admin():
         return os.geteuid() == 0
     except Exception:
         return False
+
+def get_interface_mac(interface):
+    """获取网络接口的 MAC 地址"""
+    try:
+        # 使用 networksetup -getmacaddress 命令获取 MAC 地址
+        result = subprocess.check_output(
+            ['networksetup', '-getmacaddress', interface], 
+            text=True
+        )
+        # 输出格式类似: "Ethernet Address: xx:xx:xx:xx:xx:xx (Local)"
+        mac = result.split(': ')[1].split(' ')[0].strip()
+        return mac.lower()
+    except Exception as e:
+        logger.error(f"获取 MAC 地址失败: {str(e)}")
+        return None
 
 def change_mac_address():
     """修改 MAC 地址"""
@@ -94,7 +109,7 @@ def change_mac_address():
             # 验证修改
             current_mac = get_interface_mac(wifi_device)
             
-            if current_mac.lower() == new_mac.lower():
+            if current_mac and current_mac.lower() == new_mac.lower():
                 logger.info(f"MAC 地址已成功修改为: {new_mac}")
                 return True
             else:
