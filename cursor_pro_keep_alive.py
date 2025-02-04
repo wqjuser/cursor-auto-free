@@ -402,7 +402,7 @@ class MachineIDResetter:
         self.winreg = __import__('winreg') if self.is_windows else None
 
     def _change_mac_address(self):
-        """修改 MAC 地址 (仅 macOS)"""
+        """修改 MAC 地址"""
         try:
             from scapy.all import get_if_list, get_if_hwaddr, conf
 
