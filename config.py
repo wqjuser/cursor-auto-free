@@ -5,7 +5,21 @@ from logger import logging
 
 
 class Config:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        # 如果已经初始化过，直接返回
+        if self._initialized:
+            return
+            
+        self._initialized = True
+        
         # 获取应用程序的根目录路径
         if getattr(sys, "frozen", False):
             # 如果是打包后的可执行文件
@@ -22,12 +36,38 @@ class Config:
         self.temp_mail = "wqj666"  # 默认设置为 wqj666
         self.domain = "wqj666.ggff.net"
 
+        # 检查是否支持颜色输出
+        def supports_color():
+            if os.name == 'nt':
+                try:
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    handle = kernel32.GetStdHandle(-11)
+                    mode = ctypes.c_ulong()
+                    if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                        return False
+                    mode.value |= 0x0004
+                    if not kernel32.SetConsoleMode(handle, mode):
+                        return False
+                    return True
+                except:
+                    return False
+            return True
+
+        # 根据是否支持颜色选择输出格式
+        if supports_color():
+            yellow = "\033[33m"
+            reset = "\033[0m"
+        else:
+            yellow = ""
+            reset = ""
+
         # 如果.env文件存在，则读取配置
         if os.path.exists(dotenv_path):
-            # 加载 .env 文件
-            load_dotenv(dotenv_path)
+            # 加载 .env 文件，设置 override=False 防止创建新文件
+            load_dotenv(dotenv_path, override=False)
             
-            self.domain = os.getenv("DOMAIN", "").strip()
+            self.domain = os.getenv("DOMAIN", self.domain).strip()
             env_temp_mail = os.getenv("TEMP_MAIL", "").strip()
             
             # 只有当环境变量中存在 TEMP_MAIL 时才覆盖默认值
@@ -43,7 +83,6 @@ class Config:
                 self.imap_pass = os.getenv("IMAP_PASS", "").strip()
                 self.imap_dir = os.getenv("IMAP_DIR", "inbox").strip()
         else:
-            logging.info("\033[33m未找到.env文件，使用默认配置\033[0m")
             self.print_config()
 
         self.check_config()
@@ -123,15 +162,50 @@ class Config:
         return isinstance(value, str) and len(str(value).strip()) > 0
 
     def print_config(self):
+        # 检查是否支持颜色输出
+        def supports_color():
+            if os.name == 'nt':
+                try:
+                    # Windows 10 build 14931 或更高版本支持 ANSI
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    # 获取控制台输出句柄
+                    handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+                    mode = ctypes.c_ulong()
+                    if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                        return False
+                    # 启用 ANSI 转义序列
+                    mode.value |= 0x0004  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                    if not kernel32.SetConsoleMode(handle, mode):
+                        return False
+                    return True
+                except:
+                    return False
+            return True
+
+        # 根据是否支持颜色选择输出格式
+        if supports_color():
+            green = "\033[32m"
+            reset = "\033[0m"
+            yellow = "\033[33m"
+        else:
+            green = ""
+            reset = ""
+            yellow = ""
+
+        if not os.path.exists(".env"):
+            logging.info(f"{yellow}未找到.env文件，使用默认配置{reset}")
+
         if self.imap:
-            logging.info(f"\033[32mIMAP服务器: {self.imap_server}\033[0m")
-            logging.info(f"\033[32mIMAP端口: {self.imap_port}\033[0m")
-            logging.info(f"\033[32mIMAP用户名: {self.imap_user}\033[0m")
-            logging.info(f"\033[32mIMAP密码: {'*' * len(self.imap_pass)}\033[0m")
-            logging.info(f"\033[32mIMAP收件箱目录: {self.imap_dir}\033[0m")
+            logging.info(f"{green}IMAP服务器: {self.imap_server}{reset}")
+            logging.info(f"{green}IMAP端口: {self.imap_port}{reset}")
+            logging.info(f"{green}IMAP用户名: {self.imap_user}{reset}")
+            logging.info(f"{green}IMAP密码: {'*' * len(self.imap_pass)}{reset}")
+            logging.info(f"{green}IMAP收件箱目录: {self.imap_dir}{reset}")
         if self.temp_mail != "null":
-            logging.info(f"\033[32m临时邮箱: {self.temp_mail}@{self.domain}\033[0m")
-        logging.info(f"\033[32m域名: {self.domain}\033[0m")
+            # 移除默认信息的打印
+            # logging.info(f"{green}临时邮箱: {self.temp_mail}@{self.domain}{reset}")
+            # logging.info(f"{green}域名: {self.domain}{reset}")
 
 
 # 使用示例
@@ -139,6 +213,6 @@ if __name__ == "__main__":
     try:
         config = Config()
         print("环境变量加载成功！")
-        config.print_config()
+        # config.print_config()
     except ValueError as e:
         print(f"错误: {e}")

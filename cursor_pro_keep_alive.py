@@ -1,20 +1,15 @@
+import ctypes
 import os
 import subprocess
 import sys
-import getpass
-import ctypes
-
 from exit_cursor import ExitCursor
-
 # 禁用不必要的日志输出
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
 os.environ["PYTHONWARNINGS"] = "ignore"
-
 import time
 import random
 from cursor_auth_manager import CursorAuthManager
-import os
 from logger import logging
 from browser_utils import BrowserManager
 from get_email_code import EmailVerificationHandler
@@ -27,7 +22,7 @@ import uuid
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin() if os.name == 'nt' else os.geteuid() == 0
-    except:
+    except Exception as exception:
         return False
 
 
@@ -37,12 +32,34 @@ def request_admin():
     if os.name == 'nt':  # Windows
         if not is_admin():
             try:
-                ctypes.windll.shell32.ShellExecuteW(
-                    None, "runas", sys.executable, script_path, None, 1
-                )
-                sys.exit(0)
+                if getattr(sys, 'frozen', False):
+                    # 如果是打包后的可执行文件
+                    executable = sys.executable
+                    ret = ctypes.windll.shell32.ShellExecuteW(
+                        None, 
+                        "runas",
+                        executable,
+                        None,  # 打包后的exe不需要额外参数
+                        None,
+                        1  # SW_NORMAL
+                    )
+                else:
+                    # 如果是 Python 脚本
+                    ret = ctypes.windll.shell32.ShellExecuteW(
+                        None, 
+                        "runas",
+                        sys.executable,
+                        script_path,  # Python脚本需要作为参数传入
+                        None,
+                        1  # SW_NORMAL
+                    )
+                
+                if ret <= 32:  # ShellExecute 返回值小于等于32表示失败
+                    raise Exception(f"ShellExecute failed with code {ret}")
+                sys.exit(0)  # 成功启动新进程后退出当前进程
             except Exception as e:
                 print(f"请求管理员权限失败: {e}")
+                print("请右键以管理员身份运行此程序")
                 sys.exit(1)
     else:  # macOS/Linux
         if not is_admin():
@@ -334,7 +351,7 @@ class EmailGenerator:
             ),
     ):
         configInstance = Config()
-        configInstance.print_config()
+        # configInstance.print_config()
         self.domain = configInstance.get_domain()
         self.default_password = password
         self.default_first_name = self.generate_random_name()
@@ -584,7 +601,7 @@ fi
 def show_menu():
     """显示功能选择菜单"""
     print("\n=== Cursor 工具 ===")
-    print("\n=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===")
+    print("\n=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===\n")
     print("1. 恢复原始机器标识")
     print("2. 重置 Cursor")
     print("3. 修改 Cursor 文件(仅限Cursor 0.45.x版本)")
@@ -598,24 +615,27 @@ def show_menu():
 
 
 def restart_cursor():
-    global restart, startupinfo, e
     if cursor_path:
         print("现在可以重新启动 Cursor 了。")
 
         # 询问是否自动启动 Cursor
         restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
         if restart == 'y':
-            try:
-                logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                if os.name == 'nt':
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                else:
-                    subprocess.Popen(['open', cursor_path])
-                logging.info("Cursor 已重新启动")
-            except Exception as e:
-                logging.error(f"重启 Cursor 失败: {str(e)}")
+            inner_restart_cursor()
+
+
+def inner_restart_cursor():
+    try:
+        logging.info(f"正在重新启动 Cursor: {cursor_path}")
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
+        else:
+            subprocess.Popen(['open', cursor_path])
+        logging.info("Cursor 已重新启动")
+    except Exception as exception:
+        logging.error(f"重启 Cursor 失败: {str(exception)}")
 
 
 if __name__ == "__main__":
@@ -625,6 +645,7 @@ if __name__ == "__main__":
     print_logo()
 
     choice = show_menu()
+    cursor_path = ""
 
     if choice == 1:
         # 恢复原始机器标识
@@ -636,7 +657,7 @@ if __name__ == "__main__":
 
         print("\n按回车键退出...", end='', flush=True)
         input()
-        os._exit(0)
+        sys.exit(0)
     elif choice == 3:
         # 修改 Cursor 文件
         try:
@@ -647,7 +668,7 @@ if __name__ == "__main__":
                 print("\n操作已取消")
                 print("\n按回车键退出...", end='', flush=True)
                 input()
-                os._exit(0)
+                sys.exit(0)
 
             # 检查并等待 Cursor 退出
             success, cursor_path = ExitCursor()
@@ -655,7 +676,7 @@ if __name__ == "__main__":
                 print("\n请先关闭 Cursor 程序后再继续")
                 print("\n按回车键退出...", end='', flush=True)
                 input()
-                os._exit(1)
+                sys.exit(1)
 
             print("\n正在修改 Cursor 文件...")
             import patch_cursor_get_machine_id
@@ -666,12 +687,12 @@ if __name__ == "__main__":
             restart_cursor()
             print("\n按回车键退出...", end='', flush=True)
             input()
-            os._exit(0)
+            sys.exit(0)
         except Exception as e:
             logging.error(f"修改 Cursor 文件失败: {str(e)}")
             print("\n修改失败，按回车键退出...", end='', flush=True)
             input()
-            os._exit(1)
+            sys.exit(1)
     elif choice == 4:
         # 恢复 Cursor 文件备份
         try:
@@ -681,7 +702,7 @@ if __name__ == "__main__":
                 print("\n请先关闭 Cursor 程序后再继续")
                 print("\n按回车键退出...", end='', flush=True)
                 input()
-                os._exit(1)
+                sys.exit(1)
 
             print("\n正在恢复 Cursor 文件备份...")
             import patch_cursor_get_machine_id
@@ -694,12 +715,12 @@ if __name__ == "__main__":
 
             print("\n按回车键退出...", end='', flush=True)
             input()
-            os._exit(0)
+            sys.exit(0)
         except Exception as e:
             logging.error(f"恢复 Cursor 文件备份失败: {str(e)}")
             print("\n恢复失败，按回车键退出...", end='', flush=True)
             input()
-            os._exit(1)
+            sys.exit(1)
 
     # 原有的重置逻辑
     browser_manager = None
@@ -784,18 +805,7 @@ if __name__ == "__main__":
             pass
 
         # 重启Cursor并退出
-        if cursor_path:
-            try:
-                logging.info(f"正在重新启动 Cursor: {cursor_path}")
-                if os.name == 'nt':
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    subprocess.Popen([cursor_path], startupinfo=startupinfo, close_fds=True)
-                else:
-                    subprocess.Popen(['open', cursor_path])
-                logging.info("Cursor 已重新启动")
-            except Exception as e:
-                logging.error(f"重启 Cursor 失败: {str(e)}")
+        restart_cursor()
 
-        # 强制退出程序
-        os._exit(0)
+        # 使用 sys.exit() 替代 os._exit()
+        sys.exit(0)
