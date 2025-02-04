@@ -404,6 +404,19 @@ class MachineIDResetter:
     def _change_mac_address(self):
         """修改 MAC 地址 (仅 macOS)"""
         try:
+            # 检查是否安装了 spoof-mac
+            try:
+                subprocess.run(['which', 'spoof-mac'], check=True, capture_output=True)
+            except subprocess.CalledProcessError:
+                logging.info("正在安装 spoof-mac...")
+                try:
+                    # 使用 pip3 安装 spoof-mac
+                    subprocess.run(['pip3', 'install', 'SpoofMAC'], check=True)
+                    logging.info("spoof-mac 安装成功")
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"安装 spoof-mac 失败: {str(e)}")
+                    return False
+
             # 获取网络接口列表
             interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
                                               text=True).split('\n')
@@ -443,9 +456,9 @@ class MachineIDResetter:
                 # 等待接口完全关闭
                 time.sleep(1)
                 
-                # 使用 sudo 运行命令
+                # 使用 spoof-mac 修改 MAC 地址
                 subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'lladdr', new_mac
+                    'sudo', 'spoof-mac', 'set', new_mac, wifi_device
                 ], check=True)
                 
                 # 等待修改生效
