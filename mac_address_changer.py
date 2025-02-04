@@ -69,6 +69,23 @@ def get_interface_mac(interface):
         logger.error(f"获取 MAC 地址失败: {str(e)}")
         return None
 
+def set_mac_address(device, mac):
+    """修改网络接口的 MAC 地址"""
+    try:
+        # 关闭网络接口
+        subprocess.run(['sudo', 'ifconfig', device, 'down'], check=True)
+        
+        # 修改 MAC 地址
+        subprocess.run(['sudo', 'ifconfig', device, 'lladdr', mac], check=True)
+        
+        # 重新启用网络接口
+        subprocess.run(['sudo', 'ifconfig', device, 'up'], check=True)
+        
+        return True
+    except Exception as e:
+        logger.error(f"修改 MAC 地址失败: {str(e)}")
+        return False
+
 def change_mac_address():
     """修改 MAC 地址"""
     try:
@@ -117,9 +134,11 @@ def change_mac_address():
             time.sleep(2)
             
             # 修改 MAC 地址
+            # if not set_mac_address(wifi_device, new_mac):
+            #     raise Exception("MAC 地址修改失败")
             set_interface_mac(wifi_device, new_mac)
             
-            time.sleep(1)
+            time.sleep(2)
             
             # 重新开启 Wi-Fi
             subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
