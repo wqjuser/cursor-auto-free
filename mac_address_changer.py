@@ -34,7 +34,7 @@ def is_admin():
 def change_mac_address():
     """修改 MAC 地址"""
     try:
-        from scapy.all import get_if_list, get_if_hwaddr, conf, set_if_hwaddr
+        from scapy.all import get_if_hwaddr
 
         # 获取网络接口列表
         interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
@@ -55,7 +55,6 @@ def change_mac_address():
 
         # 生成随机 MAC 地址
         def generate_mac():
-            # 使用常见的制造商前缀
             prefixes = [
                 'a4:83:e7',  # Apple, Inc.
                 'a4:5e:60',  # Apple, Inc.
@@ -63,7 +62,6 @@ def change_mac_address():
                 'b8:e8:56',  # Apple, Inc.
             ]
             prefix = random.choice(prefixes)
-            # 生成后三个字节
             suffix = ':'.join([f'{random.randint(0, 255):02x}' for _ in range(3)])
             return f"{prefix}:{suffix}"
 
@@ -82,9 +80,13 @@ def change_mac_address():
             # 等待接口完全关闭
             time.sleep(2)
             
-            # 使用 scapy 修改 MAC 地址
-            conf.iface = wifi_device
-            set_if_hwaddr(wifi_device, new_mac)
+            # 修改 MAC 地址
+            subprocess.run([
+                'sudo', 'networksetup', 
+                '-setmacaddress', 
+                wifi_device, 
+                new_mac
+            ], check=True)
             
             time.sleep(1)
             
