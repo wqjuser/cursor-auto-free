@@ -34,7 +34,7 @@ def is_admin():
 def change_mac_address():
     """修改 MAC 地址"""
     try:
-        from scapy.all import get_if_list, get_if_hwaddr, conf
+        from scapy.all import get_if_list, get_if_hwaddr, conf, set_if_hwaddr
 
         # 获取网络接口列表
         interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
@@ -71,6 +71,10 @@ def change_mac_address():
         logger.info(f"正在修改 MAC 地址: {new_mac}")
 
         try:
+            # 获取当前 MAC 地址
+            original_mac = get_if_hwaddr(wifi_device)
+            logger.info(f"当前 MAC 地址: {original_mac}")
+
             # 关闭 Wi-Fi
             subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'], 
                          check=True)
@@ -78,23 +82,9 @@ def change_mac_address():
             # 等待接口完全关闭
             time.sleep(2)
             
-            # 使用 sudo 运行命令
-            subprocess.run([
-                'sudo', 'ifconfig', wifi_device, 'down'
-            ], check=True)
-            
-            time.sleep(1)
-            
-            # 修改 MAC 地址
-            subprocess.run([
-                'sudo', 'ifconfig', wifi_device, 'ether', new_mac
-            ], check=True)
-            
-            time.sleep(1)
-            
-            subprocess.run([
-                'sudo', 'ifconfig', wifi_device, 'up'
-            ], check=True)
+            # 使用 scapy 修改 MAC 地址
+            conf.iface = wifi_device
+            set_if_hwaddr(wifi_device, new_mac)
             
             time.sleep(1)
             
@@ -105,8 +95,7 @@ def change_mac_address():
             # 等待接口完全启动
             time.sleep(3)
 
-            # 使用 scapy 验证修改
-            conf.iface = wifi_device  # 设置 scapy 使用的接口
+            # 验证修改
             current_mac = get_if_hwaddr(wifi_device)
             
             if current_mac.lower() == new_mac.lower():
@@ -120,8 +109,6 @@ def change_mac_address():
             logger.error(f"修改 MAC 地址时发生错误: {str(e)}")
             # 确保 Wi-Fi 重新开启
             try:
-                subprocess.run(['sudo', 'ifconfig', wifi_device, 'up'], check=True)
-                time.sleep(1)
                 subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
                              check=True)
             except:
