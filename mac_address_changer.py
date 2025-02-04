@@ -40,8 +40,6 @@ def get_interface_mac(interface):
             ['networksetup', '-getmacaddress', interface], 
             text=True
         )
-        # 先打印完整输出，看看具体格式
-        logger.info(f"MAC 地址命令输出:\n{result}")
         
         # 如果输出为空，直接返回 None
         if not result.strip():
@@ -68,23 +66,6 @@ def get_interface_mac(interface):
     except Exception as e:
         logger.error(f"获取 MAC 地址失败: {str(e)}")
         return None
-
-def set_mac_address(device, mac):
-    """修改网络接口的 MAC 地址"""
-    try:
-        # 关闭网络接口
-        subprocess.run(['sudo', 'ifconfig', device, 'down'], check=True)
-        
-        # 修改 MAC 地址
-        subprocess.run(['sudo', 'ifconfig', device, 'lladdr', mac], check=True)
-        
-        # 重新启用网络接口
-        subprocess.run(['sudo', 'ifconfig', device, 'up'], check=True)
-        
-        return True
-    except Exception as e:
-        logger.error(f"修改 MAC 地址失败: {str(e)}")
-        return False
 
 def change_mac_address():
     """修改 MAC 地址"""
