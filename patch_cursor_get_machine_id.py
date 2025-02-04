@@ -175,7 +175,7 @@ def modify_main_js(main_path: str) -> bool:
             tmp_path = tmp_file.name
 
         # 使用 shutil.copy2 保留文件权限
-        shutil.copy2(main_path, main_path + ".old")
+        # shutil.copy2(main_path, main_path + ".old")
         shutil.move(tmp_path, main_path)
 
         # 恢复原始文件的权限和所有者

@@ -545,14 +545,22 @@ class MachineIDResetter:
             with open(ioreg_script, 'w') as f:
                 f.write('''#!/bin/bash
 if [[ "$*" == *"-rd1 -c IOPlatformExpertDevice"* ]]; then
-    UUID=$(uuidgen)
-    echo "+-o Root  <class IORegistryEntry, id 0x100000100, retain 12>"
-    echo "  +-o IOPlatformExpertDevice  <class IOPlatformExpertDevice, id 0x100000110, registered, matched, active, busy 0 (0 ms), retain 35>"
-    echo "    {"
-    echo "      \\"IOPlatformUUID\\" = \\"$UUID\\""
-    echo "    }"
+    # 获取真实的ioreg输出
+    REAL_OUTPUT=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice)
+    
+    # 检查是否包含 IOPlatformUUID
+    if echo "$REAL_OUTPUT" | grep -q "IOPlatformUUID"; then
+        # 生成新的UUID
+        NEW_UUID=$(uuidgen)
+        
+        # 使用 perl 替换 UUID，保持原始格式
+        echo "$REAL_OUTPUT" | perl -pe 's/"IOPlatformUUID" = "([^"]*)"/"IOPlatformUUID" = "'$NEW_UUID'"/'
+    else
+        # 如果没有找到 UUID，返回原始输出
+        echo "$REAL_OUTPUT"
+    fi
 else
-    # 使用完整路径调用原始的 ioreg
+    # 其他命令直接传递给真实的ioreg
     /usr/sbin/ioreg "$@"
 fi
 ''')
@@ -583,13 +591,33 @@ fi
             
             # 测试 ioreg 命令是否工作
             try:
-                test_output = subprocess.check_output([ioreg_script, '-rd1', '-c', 'IOPlatformExpertDevice'], 
-                                                    text=True, 
-                                                    stderr=subprocess.PIPE)
+                # 获取原始输出用于比较
+                original_output = subprocess.check_output(
+                    ['/usr/sbin/ioreg', '-rd1', '-c', 'IOPlatformExpertDevice'], 
+                    text=True, 
+                    stderr=subprocess.PIPE
+                )
+                
+                # 获取假命令的输出
+                test_output = subprocess.check_output(
+                    [ioreg_script, '-rd1', '-c', 'IOPlatformExpertDevice'], 
+                    text=True, 
+                    stderr=subprocess.PIPE
+                )
+                
                 if 'IOPlatformUUID' in test_output:
-                    logging.info("ioreg 命令测试成功")
+                    # 检查UUID是否确实被修改
+                    original_uuid = original_output.split('IOPlatformUUID')[1].split('"')[2]
+                    new_uuid = test_output.split('IOPlatformUUID')[1].split('"')[2]
+                    
+                    if original_uuid != new_uuid:
+                        logging.info("ioreg 命令测试成功，UUID 已被成功修改")
+                        logging.info(f"原始 UUID: {original_uuid}")
+                        logging.info(f"新 UUID: {new_uuid}")
+                    else:
+                        logging.warning("ioreg 命令可能未正确工作：UUID 未被修改")
                 else:
-                    logging.warning("ioreg 命令可能未正确工作")
+                    logging.warning("ioreg 命令可能未正确工作：未找到 UUID")
             except Exception as e:
                 logging.error(f"测试 ioreg 命令失败: {e}")
 
