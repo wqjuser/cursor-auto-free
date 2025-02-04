@@ -404,18 +404,7 @@ class MachineIDResetter:
     def _change_mac_address(self):
         """修改 MAC 地址 (仅 macOS)"""
         try:
-            # 检查是否安装了 spoof-mac
-            try:
-                subprocess.run(['which', 'spoof-mac'], check=True, capture_output=True)
-            except subprocess.CalledProcessError:
-                logging.info("正在安装 spoof-mac...")
-                try:
-                    # 使用 pip3 安装 spoof-mac
-                    subprocess.run(['pip3', 'install', 'SpoofMAC'], check=True)
-                    logging.info("spoof-mac 安装成功")
-                except subprocess.CalledProcessError as e:
-                    logging.error(f"安装 spoof-mac 失败: {str(e)}")
-                    return False
+            from scapy.all import get_if_list, get_if_hwaddr, conf
 
             # 获取网络接口列表
             interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
@@ -456,9 +445,9 @@ class MachineIDResetter:
                 # 等待接口完全关闭
                 time.sleep(1)
                 
-                # 使用 spoof-mac 修改 MAC 地址
+                # 使用 macchanger 修改 MAC 地址
                 subprocess.run([
-                    'sudo', 'spoof-mac', 'set', new_mac, wifi_device
+                    'sudo', 'ifconfig', wifi_device, 'ether', new_mac
                 ], check=True)
                 
                 # 等待修改生效
@@ -471,16 +460,18 @@ class MachineIDResetter:
                 # 等待接口完全启动
                 time.sleep(2)
 
-                # 验证修改
-                result = subprocess.check_output(['ifconfig', wifi_device], text=True)
-                if new_mac.lower() in result.lower():
+                # 使用 scapy 验证修改
+                conf.iface = wifi_device  # 设置 scapy 使用的接口
+                current_mac = get_if_hwaddr(wifi_device)
+                
+                if current_mac.lower() == new_mac.lower():
                     logging.info(f"MAC 地址已成功修改为: {new_mac}")
                     return True
                 else:
-                    logging.error("MAC 地址修改验证失败")
+                    logging.error(f"MAC 地址修改验证失败: 当前={current_mac}, 预期={new_mac}")
                     return False
 
-            except subprocess.CalledProcessError as e:
+            except Exception as e:
                 logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
                 # 确保 Wi-Fi 重新开启
                 try:
