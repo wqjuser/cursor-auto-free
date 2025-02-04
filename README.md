@@ -14,11 +14,15 @@
 win电脑直接双击运行可执行文件即可，会自动申请权限
 mac电脑需要在命令行内导航到CursorPro文件所在的路径，然后运行命令 
 
-```chmod +x CursorPro```
+```bash
+chmod +x CursorPro
+```
 
 然后回车，接着执行命令
 
-```sudo ./CursorPro```
+```bash
+sudo ./CursorPro
+```
 
 ## 整合 [cursor-auto-free](https://github.com/chengazhen/cursor-auto-free) 和 [cursor-reset](https://github.com/hamflx/cursor-reset) 两位大佬的开源脚本
 ## 适配Cursor工具0.45.x版本的无限试用
