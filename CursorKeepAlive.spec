@@ -14,22 +14,19 @@ a = Analysis(
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
         ('cursor_auth_manager.py', '.'),
-        ('patch_cursor_get_machine_id.py', '.'),
-        ('mac_address_changer.py', '.')
+        ('patch_cursor_get_machine_id.py', '.')
     ],
     hiddenimports=[
         'cursor_auth_manager',
         'psutil',
         'DrissionPage',
         'colorama',
-        'python-dotenv',
         'exit_cursor',
         'browser_utils',
         'get_email_code',
         'logo',
         'config',
         'patch_cursor_get_machine_id',
-        'mac_address_changer',
     ],
     hookspath=[],
     hooksconfig={},

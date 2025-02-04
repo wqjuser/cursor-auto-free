@@ -2,7 +2,10 @@ import ctypes
 import os
 import subprocess
 import sys
+
 from exit_cursor import ExitCursor
+from reset_machine import MachineIDResetter
+
 # 禁用不必要的日志输出
 os.environ["PYTHONVERBOSE"] = "0"
 os.environ["PYINSTALLER_VERBOSE"] = "0"
@@ -16,7 +19,6 @@ from get_email_code import EmailVerificationHandler
 from logo import print_logo
 from config import Config
 from datetime import datetime
-import uuid
 
 
 def is_admin():
@@ -36,7 +38,7 @@ def request_admin():
                     # 如果是打包后的可执行文件
                     executable = sys.executable
                     ret = ctypes.windll.shell32.ShellExecuteW(
-                        None, 
+                        None,
                         "runas",
                         executable,
                         None,  # 打包后的exe不需要额外参数
@@ -46,14 +48,14 @@ def request_admin():
                 else:
                     # 如果是 Python 脚本
                     ret = ctypes.windll.shell32.ShellExecuteW(
-                        None, 
+                        None,
                         "runas",
                         sys.executable,
                         script_path,  # Python脚本需要作为参数传入
                         None,
                         1  # SW_NORMAL
                     )
-                
+
                 if ret <= 32:  # ShellExecute 返回值小于等于32表示失败
                     raise Exception(f"ShellExecute failed with code {ret}")
                 sys.exit(0)  # 成功启动新进程后退出当前进程
@@ -396,278 +398,17 @@ def get_user_agent():
         return None
 
 
-class MachineIDResetter:
-    def __init__(self):
-        self.is_windows = os.name == 'nt'
-        self.winreg = __import__('winreg') if self.is_windows else None
-
-    def _change_mac_address(self):
-        """修改 MAC 地址"""
-        try:
-            # 导入 mac_address_changer 模块
-            import mac_address_changer
-
-            # 调用 change_mac_address 函数
-            return mac_address_changer.change_mac_address()
-            
-        except Exception as e:
-            logging.error(f"修改 MAC 地址失败: {str(e)}")
-            return False
-
-    def reset_machine_ids(self):
-        """重置机器标识"""
-        if self.is_windows:
-            return self._reset_windows_machine_guid()
-        else:
-            # 在 macOS 上同时修改 ioreg 和 MAC 地址
-            ioreg_success = self._setup_fake_ioreg()
-            mac_success = self._change_mac_address()
-            
-            if ioreg_success and mac_success:
-                logging.info("机器标识和 MAC 地址都已成功重置")
-                return True
-            elif ioreg_success:
-                logging.warning("机器标识已重置，但 MAC 地址修改失败")
-                return True
-            elif mac_success:
-                logging.warning("MAC 地址已修改，但机器标识重置失败")
-                return False
-            else:
-                logging.error("机器标识和 MAC 地址修改都失败了")
-                return False
-
-    def restore_windows_machine_guid(self):
-        """恢复Windows的原始MachineGuid"""
-        try:
-            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
-            if not os.path.exists(backup_dir):
-                logging.error("未找到备份文件夹")
-                return False
-
-            # 获取所有备份文件
-            backup_files = sorted([f for f in os.listdir(backup_dir) if f.startswith("MachineGuid_")])
-            if not backup_files:
-                logging.error("未找到备份文件")
-                return False
-
-            # 让用户选择要恢复的备份
-            print("\n可用的备份文件：")
-            for i, file in enumerate(backup_files, 1):
-                print(f"{i}. {file}")
-
-            choice = input("\n请选择要恢复的备份文件编号（默认为1）: ").strip()
-            choice = int(choice) if choice.isdigit() else 1
-
-            if choice < 1 or choice > len(backup_files):
-                logging.error("无效的选择")
-                return False
-
-            backup_file = os.path.join(backup_dir, backup_files[choice - 1])
-            with open(backup_file, 'r') as f:
-                original_guid = f.read().strip()
-
-            # 恢复MachineGuid
-            key_path = r"SOFTWARE\Microsoft\Cryptography"
-            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
-                                     self.winreg.KEY_SET_VALUE) as key:
-                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, original_guid)
-
-            logging.info(f"已恢复原始 MachineGuid: {original_guid}")
-            return True
-
-        except Exception as e:
-            logging.error(f"恢复 MachineGuid 失败: {str(e)}")
-            return False
-
-    @staticmethod
-    def remove_fake_ioreg():
-        """移除假的ioreg命令"""
-        try:
-            real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
-            real_home = os.path.expanduser(f'~{real_user}')
-
-            # 移除假命令
-            fake_commands_dir = os.path.join(real_home, "fake-commands")
-            ioreg_script = os.path.join(fake_commands_dir, "ioreg")
-
-            if os.path.exists(ioreg_script):
-                os.remove(ioreg_script)
-                logging.info("已移除假的 ioreg 命令")
-
-            # 从配置文件中移除PATH配置
-            shell_files = [
-                os.path.join(real_home, '.zshrc'),
-                os.path.join(real_home, '.bash_profile'),
-                os.path.join(real_home, '.bashrc'),
-                os.path.join(real_home, '.profile')
-            ]
-
-            path_line = f'export PATH="{fake_commands_dir}:$PATH"'
-            for shell_file in shell_files:
-                if os.path.exists(shell_file):
-                    with open(shell_file, 'r') as f:
-                        lines = f.readlines()
-
-                    with open(shell_file, 'w') as f:
-                        for line in lines:
-                            if path_line not in line:
-                                f.write(line)
-
-            logging.info("已从shell配置中移除PATH设置")
-            logging.info("请重新打开终端使更改生效")
-            return True
-
-        except Exception as e:
-            logging.error(f"移除假ioreg命令失败: {str(e)}")
-            return False
-
-    @staticmethod
-    def _generate_guid():
-        """生成新的GUID"""
-        return str(uuid.uuid4())
-
-    def _reset_windows_machine_guid(self):
-        """重置Windows的MachineGuid"""
-        try:
-            new_guid = self._generate_guid()
-            key_path = r"SOFTWARE\Microsoft\Cryptography"
-
-            # 备份原始MachineGuid
-            backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
-            os.makedirs(backup_dir, exist_ok=True)
-
-            # 读取当前值并备份
-            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
-                                     self.winreg.KEY_READ) as key:
-                current_guid = self.winreg.QueryValueEx(key, "MachineGuid")[0]
-
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            backup_file = os.path.join(backup_dir, f"MachineGuid_{timestamp}.txt")
-            with open(backup_file, 'w') as f:
-                f.write(current_guid)
-
-            # 更新MachineGuid
-            with self.winreg.OpenKey(self.winreg.HKEY_LOCAL_MACHINE, key_path, 0,
-                                     self.winreg.KEY_SET_VALUE) as key:
-                self.winreg.SetValueEx(key, "MachineGuid", 0, self.winreg.REG_SZ, new_guid)
-
-            logging.info(f"Windows MachineGuid已更新: {new_guid}")
-            logging.info(f"原始MachineGuid已备份到: {backup_file}")
-            return True
-        except Exception as e:
-            logging.error(f"更新Windows MachineGuid失败: {str(e)}")
-            return False
-
-    @staticmethod
-    def _setup_fake_ioreg():
-        """设置macOS的假ioreg命令"""
-        try:
-            real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
-            real_home = os.path.expanduser(f'~{real_user}')
-
-            # 创建假命令目录
-            fake_commands_dir = os.path.join(real_home, "fake-commands")
-            os.makedirs(fake_commands_dir, exist_ok=True)
-
-            # 创建假的ioreg脚本
-            ioreg_script = os.path.join(fake_commands_dir, "ioreg")
-            with open(ioreg_script, 'w') as f:
-                f.write('''#!/bin/bash
-if [[ "$*" == *"-rd1 -c IOPlatformExpertDevice"* ]]; then
-    # 获取真实的ioreg输出
-    REAL_OUTPUT=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice)
-    
-    # 检查是否包含 IOPlatformUUID
-    if echo "$REAL_OUTPUT" | grep -q "IOPlatformUUID"; then
-        # 生成新的UUID
-        NEW_UUID=$(uuidgen)
-        
-        # 使用 perl 替换 UUID，保持原始格式
-        echo "$REAL_OUTPUT" | perl -pe 's/"IOPlatformUUID" = "([^"]*)"/"IOPlatformUUID" = "'$NEW_UUID'"/'
-    else
-        # 如果没有找到 UUID，返回原始输出
-        echo "$REAL_OUTPUT"
-    fi
-else
-    # 其他命令直接传递给真实的ioreg
-    /usr/sbin/ioreg "$@"
-fi
-''')
-
-            # 设置执行权限
-            os.chmod(ioreg_script, 0o755)
-
-            # 修改环境变量
-            shell_files = ['.zshrc', '.bash_profile', '.bashrc']
-            path_line = f'export PATH="{fake_commands_dir}:$PATH"\n'
-            
-            for shell_file in shell_files:
-                shell_path = os.path.join(real_home, shell_file)
-                if os.path.exists(shell_path):
-                    # 检查是否已经添加了路径
-                    with open(shell_path, 'r') as f:
-                        content = f.read()
-                    if fake_commands_dir not in content:
-                        with open(shell_path, 'a') as f:
-                            f.write('\n# Added by Cursor Tool\n')
-                            f.write(path_line)
-
-            # 立即更新当前会话的 PATH
-            os.environ['PATH'] = f"{fake_commands_dir}:{os.environ.get('PATH', '')}"
-
-            logging.info(f"已创建假的 ioreg 命令: {ioreg_script}")
-            logging.info("请重新打开终端或运行 source ~/.zshrc (或 .bash_profile) 使更改生效")
-            
-            # 测试 ioreg 命令是否工作
-            try:
-                # 获取原始输出用于比较
-                original_output = subprocess.check_output(
-                    ['/usr/sbin/ioreg', '-rd1', '-c', 'IOPlatformExpertDevice'], 
-                    text=True, 
-                    stderr=subprocess.PIPE
-                )
-                
-                # 获取假命令的输出
-                test_output = subprocess.check_output(
-                    [ioreg_script, '-rd1', '-c', 'IOPlatformExpertDevice'], 
-                    text=True, 
-                    stderr=subprocess.PIPE
-                )
-                
-                if 'IOPlatformUUID' in test_output:
-                    # 检查UUID是否确实被修改
-                    original_uuid = original_output.split('IOPlatformUUID')[1].split('"')[2]
-                    new_uuid = test_output.split('IOPlatformUUID')[1].split('"')[2]
-                    
-                    if original_uuid != new_uuid:
-                        logging.info("ioreg 命令测试成功，UUID 已被成功修改")
-                        logging.info(f"原始 UUID: {original_uuid}")
-                        logging.info(f"新 UUID: {new_uuid}")
-                    else:
-                        logging.warning("ioreg 命令可能未正确工作：UUID 未被修改")
-                else:
-                    logging.warning("ioreg 命令可能未正确工作：未找到 UUID")
-            except Exception as e:
-                logging.error(f"测试 ioreg 命令失败: {e}")
-
-            return True
-        except Exception as e:
-            logging.error(f"设置假 ioreg 命令失败: {str(e)}")
-            return False
-
-
 def show_menu():
     """显示功能选择菜单"""
     print("\n=== Cursor 工具 ===")
-    print("\n=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===\n")
-    print("1. 恢复原始机器标识")
-    print("2. 重置 Cursor")
-    print("3. 修改 Cursor 文件(仅限Cursor 0.45.x版本)")
-    print("4. 恢复 Cursor 文件(仅限Cursor 0.45.x版本)")
+    print("=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===\n")
+    print("1. 一键注册并且享用Cursor")
+    print("2. 仅仅修改文件或设备信息")
+    print("2. 恢复原始文件或设备信息")
 
     while True:
-        choice = input("\n请选择功能 (1-4): ").strip()
-        if choice in ['1', '2', '3', '4']:
+        choice = input("\n请选择功能 (1-3): ").strip()
+        if choice in ['1', '2', '3']:
             return int(choice)
         print("无效的选择，请重试")
 
@@ -680,6 +421,10 @@ def restart_cursor():
         restart = input("\n是否要重新启动 Cursor？(y/n): ").strip().lower()
         if restart == 'y':
             inner_restart_cursor()
+    else:
+        print("\n按回车键退出...", end='', flush=True)
+        input()
+        sys.exit(0)
 
 
 def inner_restart_cursor():
@@ -705,83 +450,19 @@ if __name__ == "__main__":
     choice = show_menu()
     cursor_path = ""
 
-    if choice == 1:
-        # 恢复原始机器标识
-        resetter = MachineIDResetter()
-        if os.name == 'nt':
-            resetter.restore_windows_machine_guid()
-        else:
-            resetter.remove_fake_ioreg()
-
-        print("\n按回车键退出...", end='', flush=True)
+    if choice == 3:
+        MachineIDResetter().restore_machine_ids()
+        print("\n文件或设备信息恢复成功，按回车键退出...", end='', flush=True)
         input()
         sys.exit(0)
-    elif choice == 3:
-        # 修改 Cursor 文件
-        try:
-            # 提示用户确认
-            print("\n警告：接下来的操作将会修改 Cursor 的程序文件(会自动备份该文件)")
-            confirm = input("\n是否继续？(y/n): ").strip().lower()
-            if confirm != 'y':
-                print("\n操作已取消")
-                print("\n按回车键退出...", end='', flush=True)
-                input()
-                sys.exit(0)
-
-            # 检查并等待 Cursor 退出
-            success, cursor_path = ExitCursor()
-            if not success:
-                print("\n请先关闭 Cursor 程序后再继续")
-                print("\n按回车键退出...", end='', flush=True)
-                input()
-                sys.exit(1)
-
-            print("\n正在修改 Cursor 文件...")
-            import patch_cursor_get_machine_id
-
-            patch_cursor_get_machine_id.main()
-
-            print("\n修改完成！")
-            restart_cursor()
-            print("\n按回车键退出...", end='', flush=True)
-            input()
-            sys.exit(0)
-        except Exception as e:
-            logging.error(f"修改 Cursor 文件失败: {str(e)}")
-            print("\n修改失败，按回车键退出...", end='', flush=True)
-            input()
-            sys.exit(1)
-    elif choice == 4:
-        # 恢复 Cursor 文件备份
-        try:
-            # 检查并等待 Cursor 退出
-            success, cursor_path = ExitCursor()
-            if not success:
-                print("\n请先关闭 Cursor 程序后再继续")
-                print("\n按回车键退出...", end='', flush=True)
-                input()
-                sys.exit(1)
-
-            print("\n正在恢复 Cursor 文件备份...")
-            import patch_cursor_get_machine_id
-
-            patch_cursor_get_machine_id.main(restore_mode=True)
-
-            print("\n恢复完成！")
-
-            restart_cursor()
-
-            print("\n按回车键退出...", end='', flush=True)
-            input()
-            sys.exit(0)
-        except Exception as e:
-            logging.error(f"恢复 Cursor 文件备份失败: {str(e)}")
-            print("\n恢复失败，按回车键退出...", end='', flush=True)
-            input()
-            sys.exit(1)
-
+    elif choice == 2:
+        MachineIDResetter().reset_machine_ids()
+        print("\n文件或设备信息修改成功，按回车键退出...", end='', flush=True)
+        input()
+        sys.exit(0)
     # 原有的重置逻辑
     browser_manager = None
+    is_success = False
     try:
         logging.info("\n=== 初始化程序 ===")
         success, cursor_path = ExitCursor()
@@ -837,11 +518,10 @@ if __name__ == "__main__":
                 update_cursor_auth(
                     email=account, access_token=token, refresh_token=token
                 )
-
-                logging.info("重置机器码...")
+                logging.info("处理Cursor...")
                 MachineIDResetter().reset_machine_ids()
-
                 logging.info("所有操作已完成")
+                is_success = True
             else:
                 logging.error("获取会话令牌失败，注册流程未完成")
 
@@ -856,14 +536,12 @@ if __name__ == "__main__":
             browser_manager.quit()
             browser_manager = None
 
-        print("\n程序执行完毕，按回车键退出...", end='', flush=True)
-        try:
+        if is_success:
+            # 重启Cursor并退出
+            restart_cursor()
+            # 使用 sys.exit() 替代 os._exit()
+            sys.exit(0)
+        else:
+            print("\n程序执行失败，按回车键退出...", end='', flush=True)
             input()
-        except (KeyboardInterrupt, EOFError):
-            pass
-
-        # 重启Cursor并退出
-        restart_cursor()
-
-        # 使用 sys.exit() 替代 os._exit()
-        sys.exit(0)
+            sys.exit(1)

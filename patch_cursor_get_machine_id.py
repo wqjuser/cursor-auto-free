@@ -16,6 +16,13 @@ from typing import Tuple
 def setup_logging() -> logging.Logger:
     """配置并返回logger实例"""
     logger = logging.getLogger(__name__)
+    
+    # 清除所有已存在的处理器
+    logger.handlers.clear()
+    
+    # 防止日志重复
+    logger.propagate = False
+    
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter(
@@ -24,6 +31,7 @@ def setup_logging() -> logging.Logger:
     )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+    
     return logger
 
 
@@ -183,8 +191,9 @@ def modify_main_js(main_path: str) -> bool:
         if os.name != 'nt':  # 在非Windows系统上设置所有者
             os.chown(main_path, original_uid, original_gid)
 
-        logger.info("文件修改成功")
+        logger.info("main.js文件修改成功")
         return True
+
 
     except Exception as e:
         logger.error(f"修改文件时发生错误: {str(e)}")
@@ -250,8 +259,6 @@ def main(restore_mode=False) -> None:
     Args:
         restore_mode: 是否为恢复模式
     """
-    logger.info("开始执行脚本...")
-
     try:
         # 获取路径
         pkg_path, main_path = get_cursor_paths()
@@ -293,7 +300,6 @@ def main(restore_mode=False) -> None:
         if not modify_main_js(main_path):
             sys.exit(1)
 
-        logger.info("脚本执行完成")
 
     except Exception as e:
         logger.error(f"执行过程中发生错误: {str(e)}")
