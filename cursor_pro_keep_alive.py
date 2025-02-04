@@ -584,6 +584,7 @@ fi
 def show_menu():
     """显示功能选择菜单"""
     print("\n=== Cursor 工具 ===")
+    print("\n=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===")
     print("1. 恢复原始机器标识")
     print("2. 重置 Cursor")
     print("3. 修改 Cursor 文件(仅限Cursor 0.45.x版本)")
