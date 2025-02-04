@@ -7,6 +7,7 @@ import time
 import logging
 import os
 import sys
+from spoofmac.interface import set_interface_mac, get_interface_mac
 
 # 配置日志
 def setup_logging():
@@ -34,8 +35,6 @@ def is_admin():
 def change_mac_address():
     """修改 MAC 地址"""
     try:
-        from scapy.all import get_if_hwaddr
-
         # 获取网络接口列表
         interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
                                           text=True).split('\n')
@@ -70,7 +69,7 @@ def change_mac_address():
 
         try:
             # 获取当前 MAC 地址
-            original_mac = get_if_hwaddr(wifi_device)
+            original_mac = get_interface_mac(wifi_device)
             logger.info(f"当前 MAC 地址: {original_mac}")
 
             # 关闭 Wi-Fi
@@ -81,12 +80,7 @@ def change_mac_address():
             time.sleep(2)
             
             # 修改 MAC 地址
-            subprocess.run([
-                'sudo', 'networksetup', 
-                '-setmacaddress', 
-                wifi_device, 
-                new_mac
-            ], check=True)
+            set_interface_mac(wifi_device, new_mac)
             
             time.sleep(1)
             
@@ -98,7 +92,7 @@ def change_mac_address():
             time.sleep(3)
 
             # 验证修改
-            current_mac = get_if_hwaddr(wifi_device)
+            current_mac = get_interface_mac(wifi_device)
             
             if current_mac.lower() == new_mac.lower():
                 logger.info(f"MAC 地址已成功修改为: {new_mac}")

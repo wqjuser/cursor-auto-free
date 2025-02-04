@@ -404,100 +404,12 @@ class MachineIDResetter:
     def _change_mac_address(self):
         """修改 MAC 地址"""
         try:
-            from scapy.all import get_if_list, get_if_hwaddr, conf
-
-            # 获取网络接口列表
-            interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
-                                              text=True).split('\n')
+            # 导入 mac_address_changer 模块
+            import mac_address_changer
             
-            # 找到 Wi-Fi 接口
-            wifi_device = None
-            for i, line in enumerate(interfaces):
-                if 'Wi-Fi' in line or 'AirPort' in line:
-                    # 下一行包含设备名称
-                    device_line = interfaces[i + 1]
-                    wifi_device = device_line.split(': ')[1].strip()
-                    break
+            # 调用 change_mac_address 函数
+            return mac_address_changer.change_mac_address()
             
-            if not wifi_device:
-                logging.error("未找到 Wi-Fi 接口")
-                return False
-
-            # 生成随机 MAC 地址
-            def generate_mac():
-                # 使用常见的制造商前缀
-                prefixes = [
-                    'a4:83:e7',  # Apple, Inc.
-                    'a4:5e:60',  # Apple, Inc.
-                    'ac:bc:32',  # Apple, Inc.
-                    'b8:e8:56',  # Apple, Inc.
-                ]
-                prefix = random.choice(prefixes)
-                # 生成后三个字节
-                suffix = ':'.join([f'{random.randint(0, 255):02x}' for _ in range(3)])
-                return f"{prefix}:{suffix}"
-
-            new_mac = generate_mac()
-            logging.info(f"正在修改 MAC 地址: {new_mac}")
-
-            try:
-                # 关闭 Wi-Fi
-                subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'], 
-                             check=True)
-                
-                # 等待接口完全关闭
-                time.sleep(2)
-                
-                # 使用 sudo 运行命令
-                subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'down'
-                ], check=True)
-                
-                time.sleep(1)
-                
-                # 修改 MAC 地址
-                subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'ether', new_mac
-                ], check=True)
-                
-                time.sleep(1)
-                
-                subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'up'
-                ], check=True)
-                
-                time.sleep(1)
-                
-                # 重新开启 Wi-Fi
-                subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
-                             check=True)
-                
-                # 等待接口完全启动
-                time.sleep(3)
-
-                # 使用 scapy 验证修改
-                conf.iface = wifi_device  # 设置 scapy 使用的接口
-                current_mac = get_if_hwaddr(wifi_device)
-                
-                if current_mac.lower() == new_mac.lower():
-                    logging.info(f"MAC 地址已成功修改为: {new_mac}")
-                    return True
-                else:
-                    logging.error(f"MAC 地址修改验证失败: 当前={current_mac}, 预期={new_mac}")
-                    return False
-
-            except Exception as e:
-                logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
-                # 确保 Wi-Fi 重新开启
-                try:
-                    subprocess.run(['sudo', 'ifconfig', wifi_device, 'up'], check=True)
-                    time.sleep(1)
-                    subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
-                                 check=True)
-                except:
-                    pass
-                return False
-
         except Exception as e:
             logging.error(f"修改 MAC 地址失败: {str(e)}")
             return False

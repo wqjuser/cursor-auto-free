@@ -14,7 +14,8 @@ a = Analysis(
     datas=[
         ('turnstilePatch', 'turnstilePatch'),
         ('cursor_auth_manager.py', '.'),
-        ('patch_cursor_get_machine_id.py', '.')
+        ('patch_cursor_get_machine_id.py', '.'),
+        ('mac_address_changer.py', '.')
     ],
     hiddenimports=[
         'cursor_auth_manager',
@@ -28,25 +29,8 @@ a = Analysis(
         'logo',
         'config',
         'patch_cursor_get_machine_id',
-        # scapy 相关依赖
-        'scapy',
-        'scapy.arch',
-        'scapy.arch.common',
-        'scapy.arch.unix',
-        'scapy.base_classes',
-        'scapy.compat',
-        'scapy.config',
-        'scapy.consts',
-        'scapy.data',
-        'scapy.error',
-        'scapy.fields',
-        'scapy.interfaces',
-        'scapy.libs',
-        'scapy.libs.winpcapy',
-        'scapy.packet',
-        'scapy.utils',
-        'scapy.utils6',
-        'scapy.volatile'
+        'mac_address_changer',
+        'spoofmac'
     ],
     hookspath=[],
     hooksconfig={},
@@ -57,11 +41,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
-# 添加 scapy 数据文件
-import scapy
-scapy_path = os.path.dirname(scapy.__file__)
-a.datas += Tree(scapy_path, prefix='scapy')
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
