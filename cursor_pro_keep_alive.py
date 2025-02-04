@@ -399,16 +399,84 @@ def get_user_agent():
 class MachineIDResetter:
     def __init__(self):
         self.is_windows = os.name == 'nt'
-        if self.is_windows:
-            import winreg
-            self.winreg = winreg
+        self.winreg = __import__('winreg') if self.is_windows else None
 
-    def restore_original_machine_id(self):
-        """恢复原始的机器标识"""
+    def _change_mac_address(self):
+        """修改 MAC 地址 (仅 macOS)"""
+        try:
+            # 获取网络接口列表
+            interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'], 
+                                              text=True).split('\n')
+            
+            # 找到 Wi-Fi 接口
+            wifi_device = None
+            for i, line in enumerate(interfaces):
+                if 'Wi-Fi' in line or 'AirPort' in line:
+                    # 下一行包含设备名称
+                    device_line = interfaces[i + 1]
+                    wifi_device = device_line.split(': ')[1].strip()
+                    break
+            
+            if not wifi_device:
+                logging.error("未找到 Wi-Fi 接口")
+                return False
+
+            # 生成随机 MAC 地址
+            new_mac = ':'.join(['%02x' % random.randint(0, 255) for _ in range(6)])
+            # 确保是本地管理的 MAC 地址
+            new_mac = new_mac[:2] + '2' + new_mac[3:]
+            
+            logging.info(f"正在修改 MAC 地址: {new_mac}")
+
+            # 关闭 Wi-Fi
+            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'], 
+                         check=True)
+
+            # 修改 MAC 地址
+            subprocess.run(['ifconfig', wifi_device, 'ether', new_mac], 
+                         check=True)
+
+            # 重新开启 Wi-Fi
+            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
+                         check=True)
+
+            # 验证修改
+            result = subprocess.check_output(['ifconfig', wifi_device], text=True)
+            if new_mac in result.lower():
+                logging.info(f"MAC 地址已成功修改为: {new_mac}")
+                return True
+            else:
+                logging.error("MAC 地址修改验证失败")
+                return False
+
+        except subprocess.CalledProcessError as e:
+            logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
+            return False
+        except Exception as e:
+            logging.error(f"修改 MAC 地址失败: {str(e)}")
+            return False
+
+    def reset_machine_ids(self):
+        """重置机器标识"""
         if self.is_windows:
-            return self._restore_windows_machine_guid()
+            return self._reset_windows_machine_guid()
         else:
-            return self._remove_fake_ioreg()
+            # 在 macOS 上同时修改 ioreg 和 MAC 地址
+            ioreg_success = self._setup_fake_ioreg()
+            mac_success = self._change_mac_address()
+            
+            if ioreg_success and mac_success:
+                logging.info("机器标识和 MAC 地址都已成功重置")
+                return True
+            elif ioreg_success:
+                logging.warning("机器标识已重置，但 MAC 地址修改失败")
+                return True
+            elif mac_success:
+                logging.warning("MAC 地址已修改，但机器标识重置失败")
+                return False
+            else:
+                logging.error("机器标识和 MAC 地址修改都失败了")
+                return False
 
     def _restore_windows_machine_guid(self):
         """恢复Windows的原始MachineGuid"""
@@ -626,13 +694,6 @@ fi
             logging.error(f"设置假 ioreg 命令失败: {str(e)}")
             return False
 
-    def reset_machine_ids(self):
-        """重置机器标识"""
-        if self.is_windows:
-            return self._reset_windows_machine_guid()
-        else:
-            return self._setup_fake_ioreg()
-
 
 def show_menu():
     """显示功能选择菜单"""
@@ -686,7 +747,7 @@ if __name__ == "__main__":
     if choice == 1:
         # 恢复原始机器标识
         resetter = MachineIDResetter()
-        if resetter.restore_original_machine_id():
+        if resetter.reset_machine_ids():
             print("\n机器标识已恢复")
         else:
             print("\n恢复失败")
