@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import subprocess
-import random
-import time
 import logging
 import os
+import random
+import subprocess
 import sys
-from spoofmac.interface import set_interface_mac
+import time
+
 
 # 配置日志
 def setup_logging():
@@ -23,7 +23,9 @@ def setup_logging():
     logger.addHandler(handler)
     return logger
 
+
 logger = setup_logging()
+
 
 def is_admin():
     """检查是否有管理员权限"""
@@ -32,12 +34,13 @@ def is_admin():
     except Exception:
         return False
 
+
 def get_interface_mac(interface):
     """获取网络接口的 MAC 地址"""
     try:
         # 使用 networksetup -getmacaddress 命令获取 MAC 地址
         result = subprocess.check_output(
-            ['networksetup', '-getmacaddress', interface], 
+            ['networksetup', '-getmacaddress', interface],
             text=True
         )
         # 先打印完整输出，看看具体格式
@@ -69,29 +72,13 @@ def get_interface_mac(interface):
         logger.error(f"获取 MAC 地址失败: {str(e)}")
         return None
 
-def set_mac_address(device, mac):
-    """修改网络接口的 MAC 地址"""
-    try:
-        # 关闭网络接口
-        subprocess.run(['sudo', 'ifconfig', device, 'down'], check=True)
-
-        # 修改 MAC 地址
-        subprocess.run(['sudo', 'ifconfig', device, 'lladdr', mac], check=True)
-
-        # 重新启用网络接口
-        subprocess.run(['sudo', 'ifconfig', device, 'up'], check=True)
-
-        return True
-    except Exception as e:
-        logger.error(f"修改 MAC 地址失败: {str(e)}")
-        return False
 
 def change_mac_address():
     """修改 MAC 地址"""
     try:
         # 获取网络接口列表
         interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'],
-                                          text=True).split('\n')
+                                             text=True).split('\n')
 
         # 找到 Wi-Fi 接口
         wifi_device = None
@@ -127,32 +114,32 @@ def change_mac_address():
             logger.info(f"当前 MAC 地址: {original_mac}")
 
             # 关闭 Wi-Fi
-            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'],
-                         check=True)
+            subprocess.run(['sudo', 'networksetup', '-setairportpower', wifi_device, 'off'],
+                           check=True)
 
             # 等待接口完全关闭
             time.sleep(2)
 
             # 修改 MAC 地址
-            # if not set_mac_address(wifi_device, new_mac):
-            #     raise Exception("MAC 地址修改失败")
-            set_interface_mac(wifi_device, new_mac)
+            subprocess.run(['sudo', 'ifconfig', wifi_device, 'lladdr', new_mac],
+                           check=True)
 
-            time.sleep(3)
+            time.sleep(2)
 
             # 重新开启 Wi-Fi
-            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'],
-                         check=True)
+            subprocess.run(['sudo', 'networksetup', '-setairportpower', wifi_device, 'on'],
+                           check=True)
 
             # 等待接口完全启动
-            time.sleep(3)
+            time.sleep(2)
+            return True
 
         except Exception as e:
             logger.error(f"修改 MAC 地址时发生错误: {str(e)}")
             # 确保 Wi-Fi 重新开启
             try:
                 subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'],
-                             check=True)
+                               check=True)
             except:
                 pass
             return False
@@ -160,6 +147,7 @@ def change_mac_address():
     except Exception as e:
         logger.error(f"修改 MAC 地址失败: {str(e)}")
         return False
+
 
 def main():
     """主函数"""
@@ -173,5 +161,6 @@ def main():
     else:
         logger.error("MAC 地址修改失败")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

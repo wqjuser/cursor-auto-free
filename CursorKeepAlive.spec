@@ -30,7 +30,6 @@ a = Analysis(
         'config',
         'patch_cursor_get_machine_id',
         'mac_address_changer',
-        'spoofmac'
     ],
     hookspath=[],
     hooksconfig={},
