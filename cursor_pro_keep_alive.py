@@ -406,7 +406,7 @@ class MachineIDResetter:
         try:
             # 导入 mac_address_changer 模块
             import mac_address_changer
-            
+
             # 调用 change_mac_address 函数
             return mac_address_changer.change_mac_address()
             
@@ -436,7 +436,7 @@ class MachineIDResetter:
                 logging.error("机器标识和 MAC 地址修改都失败了")
                 return False
 
-    def _restore_windows_machine_guid(self):
+    def restore_windows_machine_guid(self):
         """恢复Windows的原始MachineGuid"""
         try:
             backup_dir = os.path.join(os.path.expanduser("~"), "MachineGuid_Backups")
@@ -479,7 +479,8 @@ class MachineIDResetter:
             logging.error(f"恢复 MachineGuid 失败: {str(e)}")
             return False
 
-    def _remove_fake_ioreg(self):
+    @staticmethod
+    def remove_fake_ioreg():
         """移除假的ioreg命令"""
         try:
             real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
@@ -520,7 +521,8 @@ class MachineIDResetter:
             logging.error(f"移除假ioreg命令失败: {str(e)}")
             return False
 
-    def _generate_guid(self):
+    @staticmethod
+    def _generate_guid():
         """生成新的GUID"""
         return str(uuid.uuid4())
 
@@ -556,7 +558,8 @@ class MachineIDResetter:
             logging.error(f"更新Windows MachineGuid失败: {str(e)}")
             return False
 
-    def _setup_fake_ioreg(self):
+    @staticmethod
+    def _setup_fake_ioreg():
         """设置macOS的假ioreg命令"""
         try:
             real_user = os.environ.get('SUDO_USER') or os.environ.get('USER')
@@ -705,10 +708,10 @@ if __name__ == "__main__":
     if choice == 1:
         # 恢复原始机器标识
         resetter = MachineIDResetter()
-        if resetter.reset_machine_ids():
-            print("\n机器标识已恢复")
+        if os.name == 'nt':
+            resetter.restore_windows_machine_guid()
         else:
-            print("\n恢复失败")
+            resetter.remove_fake_ioreg()
 
         print("\n按回车键退出...", end='', flush=True)
         input()
