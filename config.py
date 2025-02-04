@@ -202,7 +202,7 @@ class Config:
             logging.info(f"{green}IMAP用户名: {self.imap_user}{reset}")
             logging.info(f"{green}IMAP密码: {'*' * len(self.imap_pass)}{reset}")
             logging.info(f"{green}IMAP收件箱目录: {self.imap_dir}{reset}")
-        if self.temp_mail != "null":
+        # if self.temp_mail != "null":
             # 移除默认信息的打印
             # logging.info(f"{green}临时邮箱: {self.temp_mail}@{self.domain}{reset}")
             # logging.info(f"{green}域名: {self.domain}{reset}")
