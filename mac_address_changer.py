@@ -89,22 +89,9 @@ def set_mac_address(device, mac):
 def change_mac_address():
     """修改 MAC 地址"""
     try:
-        # 检查是否安装了 spoof-mac
-        try:
-            subprocess.run(['which', 'spoof-mac'], check=True, capture_output=True)
-        except subprocess.CalledProcessError:
-            logging.info("正在安装 spoof-mac...")
-            try:
-                # 使用 pip3 安装 spoof-mac
-                subprocess.run(['pip3', 'install', 'SpoofMAC'], check=True)
-                logging.info("spoof-mac 安装成功")
-            except subprocess.CalledProcessError as e:
-                logging.error(f"安装 spoof-mac 失败: {str(e)}")
-                return False
-
         # 获取网络接口列表
         interfaces = subprocess.check_output(['networksetup', '-listallhardwareports'],
-                                             text=True).split('\n')
+                                          text=True).split('\n')
 
         # 找到 Wi-Fi 接口
         wifi_device = None
@@ -116,67 +103,62 @@ def change_mac_address():
                 break
 
         if not wifi_device:
-            logging.error("未找到 Wi-Fi 接口")
+            logger.error("未找到 Wi-Fi 接口")
             return False
 
         # 生成随机 MAC 地址
         def generate_mac():
-            # 生成第一个字节，确保是偶数（本地管理的MAC地址）
-            first_byte = random.randint(0, 255) & 0xfe  # 确保最后一位是0
-            # 生成剩余的字节
-            other_bytes = [random.randint(0, 255) for _ in range(5)]
-            # 组合所有字节
-            all_bytes = [first_byte] + other_bytes
-            # 格式化为MAC地址格式
-            return ':'.join([f'{b:02x}' for b in all_bytes])
+            prefixes = [
+                'a4:83:e7',  # Apple, Inc.
+                'a4:5e:60',  # Apple, Inc.
+                'ac:bc:32',  # Apple, Inc.
+                'b8:e8:56',  # Apple, Inc.
+            ]
+            prefix = random.choice(prefixes)
+            suffix = ':'.join([f'{random.randint(0, 255):02x}' for _ in range(3)])
+            return f"{prefix}:{suffix}"
 
         new_mac = generate_mac()
-        logging.info(f"正在修改 MAC 地址: {new_mac}")
+        logger.info(f"正在修改 MAC 地址: {new_mac}")
 
         try:
+            # 获取当前 MAC 地址
+            original_mac = get_interface_mac(wifi_device)
+            logger.info(f"当前 MAC 地址: {original_mac}")
+
             # 关闭 Wi-Fi
             subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'],
-                           check=True)
+                         check=True)
 
             # 等待接口完全关闭
-            time.sleep(1)
+            time.sleep(2)
 
-            # 使用 spoof-mac 修改 MAC 地址
-            subprocess.run([
-                'sudo', 'spoof-mac', 'set', new_mac, wifi_device
-            ], check=True)
+            # 修改 MAC 地址
+            # if not set_mac_address(wifi_device, new_mac):
+            #     raise Exception("MAC 地址修改失败")
+            set_interface_mac(wifi_device, new_mac)
 
-            # 等待修改生效
-            time.sleep(1)
+            time.sleep(3)
 
             # 重新开启 Wi-Fi
             subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'],
-                           check=True)
+                         check=True)
 
             # 等待接口完全启动
-            time.sleep(2)
+            time.sleep(3)
 
-            # 验证修改
-            result = subprocess.check_output(['ifconfig', wifi_device], text=True)
-            if new_mac.lower() in result.lower():
-                logging.info(f"MAC 地址已成功修改为: {new_mac}")
-                return True
-            else:
-                logging.error("MAC 地址修改验证失败")
-                return False
-
-        except subprocess.CalledProcessError as e:
-            logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
+        except Exception as e:
+            logger.error(f"修改 MAC 地址时发生错误: {str(e)}")
             # 确保 Wi-Fi 重新开启
             try:
                 subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'],
-                               check=True)
+                             check=True)
             except:
                 pass
             return False
 
     except Exception as e:
-        logging.error(f"修改 MAC 地址失败: {str(e)}")
+        logger.error(f"修改 MAC 地址失败: {str(e)}")
         return False
 
 def main():
