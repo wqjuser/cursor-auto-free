@@ -119,8 +119,7 @@ def change_mac_address():
             time.sleep(2)
 
             # 修改 MAC 地址
-            subprocess.run(['sudo', 'ifconfig', wifi_device, 'lladdr', new_mac],
-                           check=True)
+            subprocess.run(['sudo', 'ifconfig', wifi_device, 'lladdr', new_mac])
 
             time.sleep(2)
 
