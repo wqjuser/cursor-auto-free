@@ -446,22 +446,26 @@ class MachineIDResetter:
                              check=True)
                 
                 # 等待接口完全关闭
-                time.sleep(1)
+                time.sleep(2)
                 
                 # 使用 sudo 运行命令
                 subprocess.run([
                     'sudo', 'ifconfig', wifi_device, 'down'
                 ], check=True)
                 
+                time.sleep(1)
+                
+                # 修改 MAC 地址
                 subprocess.run([
-                    'sudo', 'ifconfig', wifi_device, 'lladdr', new_mac
+                    'sudo', 'ifconfig', wifi_device, 'ether', new_mac
                 ], check=True)
+                
+                time.sleep(1)
                 
                 subprocess.run([
                     'sudo', 'ifconfig', wifi_device, 'up'
                 ], check=True)
                 
-                # 等待修改生效
                 time.sleep(1)
                 
                 # 重新开启 Wi-Fi
@@ -469,7 +473,7 @@ class MachineIDResetter:
                              check=True)
                 
                 # 等待接口完全启动
-                time.sleep(2)
+                time.sleep(3)
 
                 # 使用 scapy 验证修改
                 conf.iface = wifi_device  # 设置 scapy 使用的接口
@@ -486,6 +490,8 @@ class MachineIDResetter:
                 logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
                 # 确保 Wi-Fi 重新开启
                 try:
+                    subprocess.run(['sudo', 'ifconfig', wifi_device, 'up'], check=True)
+                    time.sleep(1)
                     subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
                                  check=True)
                 except:
