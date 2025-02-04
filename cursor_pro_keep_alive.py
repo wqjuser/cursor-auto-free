@@ -546,48 +546,56 @@ class MachineIDResetter:
                 f.write('''#!/bin/bash
 if [[ "$*" == *"-rd1 -c IOPlatformExpertDevice"* ]]; then
     UUID=$(uuidgen)
-    cat << INNEREOF
-+-o Root  <class IORegistryEntry, id 0x100000100, retain 12>
-  +-o IOPlatformExpertDevice  <class IOPlatformExpertDevice, id 0x100000110, registered, matched, active, busy 0 (0 ms), retain 35>
-    | {
-    |   "IOPlatformUUID" = "$UUID"
-    | }
-INNEREOF
+    echo "+-o Root  <class IORegistryEntry, id 0x100000100, retain 12>"
+    echo "  +-o IOPlatformExpertDevice  <class IOPlatformExpertDevice, id 0x100000110, registered, matched, active, busy 0 (0 ms), retain 35>"
+    echo "    {"
+    echo "      \\"IOPlatformUUID\\" = \\"$UUID\\""
+    echo "    }"
 else
-    exec /usr/sbin/ioreg "$@"
+    # 使用完整路径调用原始的 ioreg
+    /usr/sbin/ioreg "$@"
 fi
 ''')
 
             # 设置执行权限
             os.chmod(ioreg_script, 0o755)
 
-            # 配置PATH
-            shell_config_file = None
-            shell = os.environ.get('SHELL', '').split('/')[-1]
+            # 修改环境变量
+            shell_files = ['.zshrc', '.bash_profile', '.bashrc']
+            path_line = f'export PATH="{fake_commands_dir}:$PATH"\n'
+            
+            for shell_file in shell_files:
+                shell_path = os.path.join(real_home, shell_file)
+                if os.path.exists(shell_path):
+                    # 检查是否已经添加了路径
+                    with open(shell_path, 'r') as f:
+                        content = f.read()
+                    if fake_commands_dir not in content:
+                        with open(shell_path, 'a') as f:
+                            f.write('\n# Added by Cursor Tool\n')
+                            f.write(path_line)
 
-            if shell == 'zsh':
-                shell_config_file = os.path.join(real_home, '.zshrc')
-            elif shell == 'bash':
-                shell_config_file = os.path.join(real_home, '.bash_profile')
-                if not os.path.exists(shell_config_file):
-                    shell_config_file = os.path.join(real_home, '.bashrc')
-            else:
-                shell_config_file = os.path.join(real_home, '.profile')
+            # 立即更新当前会话的 PATH
+            os.environ['PATH'] = f"{fake_commands_dir}:{os.environ.get('PATH', '')}"
 
-            path_export = f'\nexport PATH="{fake_commands_dir}:$PATH"\n'
+            logging.info(f"已创建假的 ioreg 命令: {ioreg_script}")
+            logging.info("请重新打开终端或运行 source ~/.zshrc (或 .bash_profile) 使更改生效")
+            
+            # 测试 ioreg 命令是否工作
+            try:
+                test_output = subprocess.check_output([ioreg_script, '-rd1', '-c', 'IOPlatformExpertDevice'], 
+                                                    text=True, 
+                                                    stderr=subprocess.PIPE)
+                if 'IOPlatformUUID' in test_output:
+                    logging.info("ioreg 命令测试成功")
+                else:
+                    logging.warning("ioreg 命令可能未正确工作")
+            except Exception as e:
+                logging.error(f"测试 ioreg 命令失败: {e}")
 
-            # 检查配置是否已存在
-            if os.path.exists(shell_config_file):
-                with open(shell_config_file, 'r') as f:
-                    if fake_commands_dir not in f.read():
-                        with open(shell_config_file, 'a') as f:
-                            f.write(path_export)
-
-            logging.info(f"已创建假的ioreg命令: {ioreg_script}")
-            logging.info(f"PATH配置已添加到: {shell_config_file}")
             return True
         except Exception as e:
-            logging.error(f"设置假ioreg命令失败: {str(e)}")
+            logging.error(f"设置假 ioreg 命令失败: {str(e)}")
             return False
 
     def reset_machine_ids(self):
