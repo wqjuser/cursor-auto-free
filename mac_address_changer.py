@@ -40,19 +40,31 @@ def get_interface_mac(interface):
             ['networksetup', '-getmacaddress', interface], 
             text=True
         )
-        # 输出示例: "Ethernet Address: a4:83:e7:1e:f8:87 (Local)"
-        # 先按行分割，确保我们处理正确的行
-        lines = result.strip().split('\n')
-        for line in lines:
-            if 'Ethernet Address:' in line:
-                # 找到包含 MAC 地址的行，提取 MAC 地址部分
-                parts = line.split('Ethernet Address:')[1].strip()
-                mac = parts.split()[0]  # 取第一部分（MAC 地址）
-                logger.debug(f"解析到的 MAC 地址: {mac}")
-                return mac.lower()
+        # 先打印完整输出，看看具体格式
+        logger.info(f"MAC 地址命令输出:\n{result}")
         
-        logger.error(f"未能从输出中解析到 MAC 地址: {result}")
-        return None
+        # 如果输出为空，直接返回 None
+        if not result.strip():
+            logger.error("命令输出为空")
+            return None
+            
+        try:
+            # 尝试解析 MAC 地址
+            mac = result.split(': ')[1].split(' ')[0].strip()
+            if not mac:
+                logger.error("解析到的 MAC 地址为空")
+                return None
+                
+            # 验证 MAC 地址格式
+            if len(mac.split(':')) != 6:
+                logger.error(f"MAC 地址格式不正确: {mac}")
+                return None
+                
+            return mac.lower()
+        except IndexError:
+            logger.error(f"MAC 地址解析失败，输出格式不符合预期: {result}")
+            return None
+            
     except Exception as e:
         logger.error(f"获取 MAC 地址失败: {str(e)}")
         return None
