@@ -43,8 +43,6 @@ def get_interface_mac(interface):
             ['networksetup', '-getmacaddress', interface],
             text=True
         )
-        # 先打印完整输出，看看具体格式
-        logger.info(f"MAC 地址命令输出:\n{result}")
 
         # 如果输出为空，直接返回 None
         if not result.strip():
