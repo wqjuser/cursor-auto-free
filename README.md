@@ -1,4 +1,4 @@
-## ⚠️ 免责声明
+ ## ⚠️ 免责声明
 
 本项目仅供学习和研究使用，旨在研究 Cursor IDE 的设备标识机制。**强烈建议您购买 [Cursor](https://cursor.sh/) 的正版授权**以支持开发者。
 
@@ -11,6 +11,15 @@
 如果您认可 Cursor 的价值，请支持正版，为软件开发者的工作付费。
 
 ## 此工具仅向大家提供了一个试用Cursor的渠道，请勿过分依赖。此工具免费，请勿用来售卖。直接从右侧release中下载对应系统的可执行文件运行即可
+win电脑直接双击运行可执行文件即可，会自动申请权限
+mac电脑需要在命令行内导航到CursorPro文件所在的路径，然后运行命令 
+
+```chmod +x CursorPro```
+
+然后回车，接着执行命令
+
+```sudo ./CursorPro```
+
 ## 整合 [cursor-auto-free](https://github.com/chengazhen/cursor-auto-free) 和 [cursor-reset](https://github.com/hamflx/cursor-reset) 两位大佬的开源脚本
 ## 适配Cursor工具0.45.x版本的无限试用
 ## 感谢两位大佬的开源，增加部分功能
