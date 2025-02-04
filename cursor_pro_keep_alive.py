@@ -421,7 +421,7 @@ class MachineIDResetter:
                 logging.error("未找到 Wi-Fi 接口")
                 return False
 
-            # 生成随机 MAC 地址 (修改这部分)
+            # 生成随机 MAC 地址
             def generate_mac():
                 # 生成第一个字节，确保是偶数（本地管理的MAC地址）
                 first_byte = random.randint(0, 255) & 0xfe  # 确保最后一位是0
@@ -435,30 +435,48 @@ class MachineIDResetter:
             new_mac = generate_mac()
             logging.info(f"正在修改 MAC 地址: {new_mac}")
 
-            # 关闭 Wi-Fi
-            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'], 
-                         check=True)
+            try:
+                # 关闭 Wi-Fi
+                subprocess.run(['networksetup', '-setairportpower', wifi_device, 'off'], 
+                             check=True)
+                
+                # 等待接口完全关闭
+                time.sleep(1)
+                
+                # 使用 sudo 运行命令
+                subprocess.run([
+                    'sudo', 'ifconfig', wifi_device, 'lladdr', new_mac
+                ], check=True)
+                
+                # 等待修改生效
+                time.sleep(1)
+                
+                # 重新开启 Wi-Fi
+                subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
+                             check=True)
+                
+                # 等待接口完全启动
+                time.sleep(2)
 
-            # 修改 MAC 地址
-            subprocess.run(['ifconfig', wifi_device, 'ether', new_mac], 
-                         check=True)
+                # 验证修改
+                result = subprocess.check_output(['ifconfig', wifi_device], text=True)
+                if new_mac.lower() in result.lower():
+                    logging.info(f"MAC 地址已成功修改为: {new_mac}")
+                    return True
+                else:
+                    logging.error("MAC 地址修改验证失败")
+                    return False
 
-            # 重新开启 Wi-Fi
-            subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
-                         check=True)
-
-            # 验证修改
-            result = subprocess.check_output(['ifconfig', wifi_device], text=True)
-            if new_mac in result.lower():
-                logging.info(f"MAC 地址已成功修改为: {new_mac}")
-                return True
-            else:
-                logging.error("MAC 地址修改验证失败")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
+                # 确保 Wi-Fi 重新开启
+                try:
+                    subprocess.run(['networksetup', '-setairportpower', wifi_device, 'on'], 
+                                 check=True)
+                except:
+                    pass
                 return False
 
-        except subprocess.CalledProcessError as e:
-            logging.error(f"修改 MAC 地址时发生错误: {str(e)}")
-            return False
         except Exception as e:
             logging.error(f"修改 MAC 地址失败: {str(e)}")
             return False
