@@ -437,8 +437,10 @@ def inner_restart_cursor():
         else:
             subprocess.Popen(['open', cursor_path])
         logging.info("Cursor 已重新启动")
+        os._exit(0)
     except Exception as exception:
         logging.error(f"重启 Cursor 失败: {str(exception)}")
+        os._exit(1)
 
 
 if __name__ == "__main__":
@@ -549,8 +551,6 @@ if __name__ == "__main__":
         if is_success:
             # 重启Cursor并退出
             restart_cursor()
-            # 使用 sys.exit() 替代 os._exit()
-            sys.exit(0)
         else:
             print("\n程序执行失败，按回车键退出...", end='', flush=True)
             input()
