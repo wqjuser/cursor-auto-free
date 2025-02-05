@@ -1,6 +1,9 @@
-from dotenv import load_dotenv
 import os
+import random
 import sys
+
+from dotenv import load_dotenv
+
 from logger import logging
 
 
@@ -17,9 +20,9 @@ class Config:
         # 如果已经初始化过，直接返回
         if self._initialized:
             return
-            
+
         self._initialized = True
-        
+
         # 获取应用程序的根目录路径
         if getattr(sys, "frozen", False):
             # 如果是打包后的可执行文件
@@ -30,11 +33,11 @@ class Config:
 
         # 指定 .env 文件的路径
         dotenv_path = os.path.join(application_path, ".env")
-
+        domains = ["wqj666.ggff.net", "wqjsonder.ggff.net"]
         # 设置默认值
         self.imap = False
         self.temp_mail = "wqj666"  # 默认设置为 wqj666
-        self.domain = "wqj666.ggff.net"
+        self.domain = random.choice(domains)
 
         # 检查是否支持颜色输出
         def supports_color():
@@ -66,10 +69,10 @@ class Config:
         if os.path.exists(dotenv_path):
             # 加载 .env 文件，设置 override=False 防止创建新文件
             load_dotenv(dotenv_path, override=False)
-            
+
             self.domain = os.getenv("DOMAIN", self.domain).strip()
             env_temp_mail = os.getenv("TEMP_MAIL", "").strip()
-            
+
             # 只有当环境变量中存在 TEMP_MAIL 时才覆盖默认值
             if env_temp_mail:
                 self.temp_mail = env_temp_mail.split("@")[0]
@@ -203,9 +206,9 @@ class Config:
             logging.info(f"{green}IMAP密码: {'*' * len(self.imap_pass)}{reset}")
             logging.info(f"{green}IMAP收件箱目录: {self.imap_dir}{reset}")
         # if self.temp_mail != "null":
-            # 移除默认信息的打印
-            # logging.info(f"{green}临时邮箱: {self.temp_mail}@{self.domain}{reset}")
-            # logging.info(f"{green}域名: {self.domain}{reset}")
+        # 移除默认信息的打印
+        # logging.info(f"{green}临时邮箱: {self.temp_mail}@{self.domain}{reset}")
+        # logging.info(f"{green}域名: {self.domain}{reset}")
 
 
 # 使用示例
