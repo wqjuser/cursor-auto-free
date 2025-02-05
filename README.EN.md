@@ -35,16 +35,15 @@ sudo ./CursorPro
 ## To use feature 2, you need to have a Chrome browser installed on your computer, and you also need to have logged into a cursor account, regardless of whether your account is valid or not
 
 ### 1. Add menu options
-    1. Restore the original machine identification
-    2. Reset cursor
-    3. Modify the cursor file (only for cursor 0.45. x version)
-    4. Restore cursor files (only for cursor 0.45. x version)
+    1. 一键注册并且享用Cursor
+    2. 仅仅修改文件或设备信息
+    3. 恢复原始文件或设备信息
 
 #### pay attention to:
-#### Function 1 is a rollback mechanism provided for Function 2
-#### Function 4 is a rollback mechanism provided for Function 3
-#### If you feel that the script has damaged your cursor, please run the script twice and select functions 1 and 4 to rollback
-### 2. Add the feature that if the cursor is closed by this script, it will automatically restart after the script is executed
+#### Function 1 will automatically register a cursor account, log in automatically, and modify file or device information (device information will be modified for versions below 0.45, and for versions greater than or equal to 0.45, the main. js file information of the cursor will be modified)
+#### Function 2 will automatically modify file or device information (device information will be modified for versions below 0.45, and main. js file information for cursor will be modified for versions greater than or equal to 0.45), without automatically registering an account or logging in
+#### Function 3 will restore the original files or device information (device information will be restored for versions below 0.45, and main. js file information for cursor will be restored for versions greater than or equal to 0.45), without automatically registering an account or logging in
+#### If you feel that the script has damaged your cursor, please select feature 3 to rollback
 
 ### <font color="red">Please make sure to read the original manuals of the two experts</font>
 1. [cursor-auto-free]( https://cursor-auto-free-doc.vercel.app/ ) Regarding Method 2
