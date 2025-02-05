@@ -31,8 +31,8 @@ sudo ./CursorPro
 ## Thank you to the two experts for their open-source efforts and the addition of some features
 ## Thank you [razy](https://linux.do/t/topic/404579) The function of modifying files provided by experts
 
-## Now both Function 2 and Function 3 are one click operations, without any additional configuration required
-## To use feature 2, you need to have a Chrome browser installed on your computer, and you also need to have logged into a cursor account, regardless of whether your account is valid or not
+## Now All functions are one click operations, without any additional configuration required
+## To use feature 1, you need to have a Chrome browser installed on your computer, and you also need to have logged into a cursor account, regardless of whether your account is valid or not
 
 ### 1. Add menu options
     1. 一键注册并且享用Cursor
