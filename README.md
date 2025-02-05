@@ -51,8 +51,8 @@ sudo ./CursorPro
 
 ### 2.增加如果Cursor是由本脚本关闭的，脚本执行完毕后会自动重启Cursor的功能
 
-### <font color="red">请务必阅读两个大佬的原始说明书</font>
-1. [cursor-auto-free](https://cursor-auto-free-doc.vercel.app/) 针对功能2
+### <font color="red">对原理感兴趣的可以阅读两个大佬的原始说明书</font>
+1. [cursor-auto-free](https://cursor-auto-free-doc.vercel.app/)
 
-2. [cursor-reset](https://github.com/hamflx/cursor-reset/blob/main/README.md)  针对功能3
+2. [cursor-reset](https://github.com/hamflx/cursor-reset/blob/main/README.md)
 

@@ -45,7 +45,7 @@ sudo ./CursorPro
 #### Function 3 will restore the original files or device information (device information will be restored for versions below 0.45, and main. js file information for cursor will be restored for versions greater than or equal to 0.45), without automatically registering an account or logging in
 #### If you feel that the script has damaged your cursor, please select feature 3 to rollback
 
-### <font color="red">Please make sure to read the original manuals of the two experts</font>
-1. [cursor-auto-free]( https://cursor-auto-free-doc.vercel.app/ ) Regarding Method 2
+### <font color="red">Those interested in principles can read the original manuals of the two experts</font>
+1. [cursor-auto-free]( https://cursor-auto-free-doc.vercel.app/ ) 
 
-2. [cursor-reset]( https://github.com/hamflx/cursor-reset/blob/main/README.md ) Regarding Method 3  
+2. [cursor-reset]( https://github.com/hamflx/cursor-reset/blob/main/README.md )
