@@ -115,8 +115,8 @@ class CursorProUI:
             
             self.root.title("Cursor Pro 工具")
             # 增加窗口基础高度
-            base_width = 400
-            base_height = 500  # 从400增加到600
+            base_width = 500
+            base_height = 500  
             scaled_width = int(base_width * self.scale_factor)
             scaled_height = int(base_height * self.scale_factor)
             self.root.geometry(f"{scaled_width}x{scaled_height}")
