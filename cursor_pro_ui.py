@@ -26,6 +26,7 @@ import warnings
 import urllib3
 import ctypes
 import math
+import subprocess
 
 # 配置日志
 log_file = os.path.join(tempfile.gettempdir(), f'cursor_pro_ui_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
@@ -97,6 +98,27 @@ class CursorProUI:
             if sys.platform == 'darwin':
                 os.environ['CURL_CA_BUNDLE'] = ''
                 os.environ['REQUESTS_CA_BUNDLE'] = ''
+            
+            # 初始化数据库路径
+            if sys.platform == "win32":  # Windows
+                appdata = os.getenv("APPDATA")
+                if appdata is None:
+                    raise EnvironmentError("APPDATA 环境变量未设置")
+                self.db_path = os.path.join(
+                    appdata, "Cursor", "User", "globalStorage", "storage.json"
+                )
+            elif sys.platform == "darwin":  # macOS
+                self.db_path = os.path.abspath(
+                    os.path.expanduser(
+                        "~/Library/Application Support/Cursor/User/globalStorage/storage.json"
+                    )
+                )
+            elif sys.platform == "linux":  # Linux
+                self.db_path = os.path.abspath(
+                    os.path.expanduser("~/.config/Cursor/User/globalStorage/storage.json")
+                )
+            else:
+                raise NotImplementedError(f"不支持的操作系统: {sys.platform}")
                 
             self.root = tk.Tk()
             
@@ -195,10 +217,7 @@ class CursorProUI:
             # 重新创建按钮
             self.create_rounded_rectangle(
                 canvas,
-                2,  # 左边界
-                2,  # 上边界
-                width-2,  # 右边界
-                btn_height-2,  # 下边界
+                2, 2, width-2, btn_height-2,
                 radius=int(12 * self.scale_factor),
                 fill=self.primary_color,
                 outline="",
@@ -318,12 +337,17 @@ class CursorProUI:
         scrollbar = ttk.Scrollbar(self.status_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
+        # 修改文本框样式，使用浅灰色背景和深色文字
         self.status_text = tk.Text(
             self.status_frame,
             height=20,
             wrap=tk.WORD,
             font=self.text_font,
-            bg="white",
+            bg="#F0F0F0",  # 浅灰色背景
+            fg="#000000",  # 黑色文字
+            insertbackground="#000000",  # 光标颜色
+            selectbackground="#B2D7FE",  # 选中文本的背景色
+            selectforeground="#000000",  # 选中文本的前景色
             yscrollcommand=scrollbar.set
         )
         self.status_text.pack(fill=tk.BOTH, expand=True)
@@ -352,10 +376,57 @@ class CursorProUI:
         """请求管理员权限"""
         try:
             if sys.platform == 'darwin':  # macOS
-                script = '''
-                    do shell script "echo 'Requesting admin privileges...'" with administrator privileges
+                # 获取所有需要的目录路径
+                cursor_dir = os.path.expanduser("~/Library/Application Support/Cursor")
+                user_dir = os.path.join(cursor_dir, "User")
+                storage_dir = os.path.join(user_dir, "globalStorage")
+                
+                # 构建命令，逐级创建目录并设置权限
+                script = f'''
+                    do shell script "
+                        echo 'Setting up directories and permissions...' && 
+                        mkdir -p '{storage_dir}' && 
+                        chown -R $(whoami) '{cursor_dir}' && 
+                        chmod -R 777 '{cursor_dir}' && 
+                        echo 'Permissions set successfully'
+                    " with administrator privileges
                 '''
-                os.system(f"osascript -e '{script}'")
+                
+                self.update_status("正在请求管理员权限...")
+                self.update_status(f"目标目录: {storage_dir}")
+                
+                # 执行命令
+                process = subprocess.Popen(
+                    ['osascript', '-e', script],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                stdout, stderr = process.communicate()
+                
+                if stdout:
+                    self.update_status(f"输出: {stdout}")
+                if stderr:
+                    self.update_status(f"错误: {stderr}")
+                
+                if process.returncode != 0:
+                    self.update_status("获取管理员权限失败")
+                    return False
+                
+                # 等待一下确保权限生效
+                time.sleep(1)
+                
+                # 验证权限
+                for dir_path in [cursor_dir, user_dir, storage_dir]:
+                    if not os.path.exists(dir_path):
+                        self.update_status(f"目录创建失败: {dir_path}")
+                        return False
+                    if not os.access(dir_path, os.W_OK):
+                        self.update_status(f"权限验证失败: 无法写入 {dir_path}")
+                        return False
+                
+                self.update_status("成功获取管理员权限")
+                return True
                 
             elif sys.platform == 'win32':  # Windows
                 if not is_admin():

@@ -166,6 +166,7 @@ def modify_main_js(main_path: str) -> bool:
         original_uid = original_stat.st_uid
         original_gid = original_stat.st_gid
 
+        # 创建临时文件
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
             with open(main_path, "r", encoding="utf-8") as main_file:
                 content = main_file.read()
@@ -182,8 +183,7 @@ def modify_main_js(main_path: str) -> bool:
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
-        # 使用 shutil.copy2 保留文件权限
-        # shutil.copy2(main_path, main_path + ".old")
+        # 使用 shutil.move 替换原文件
         shutil.move(tmp_path, main_path)
 
         # 恢复原始文件的权限和所有者
@@ -194,7 +194,6 @@ def modify_main_js(main_path: str) -> bool:
         logger.info("main.js文件修改成功")
         return True
 
-
     except Exception as e:
         logger.error(f"修改文件时发生错误: {str(e)}")
         if "tmp_path" in locals():
@@ -202,53 +201,32 @@ def modify_main_js(main_path: str) -> bool:
         return False
 
 
-def backup_files(pkg_path: str, main_path: str) -> bool:
-    """
-    备份原始文件
-
-    Args:
-        pkg_path: package.json 文件路径（未使用）
-        main_path: main.js 文件路径
-
-    Returns:
-        bool: 备份是否成功
-    """
+def backup_file(file_path):
+    """备份文件"""
     try:
-        # 只备份 main.js
-        if os.path.exists(main_path):
-            backup_main = f"{main_path}.bak"
-            shutil.copy2(main_path, backup_main)
-            logger.info(f"已备份 main.js: {backup_main}")
+        backup_path = file_path + ".bak"
+        shutil.copy2(file_path, backup_path)
+        logger.info(f"文件已备份到: {backup_path}")
+        return backup_path
+    except Exception as e:
+        logger.error(f"文件备份失败: {str(e)}")
+        return None
 
+
+def restore_file(original_path):
+    """从备份恢复文件"""
+    try:
+        backup_path = original_path + ".bak"
+        if not os.path.exists(backup_path):
+            logger.error(f"备份文件不存在: {backup_path}")
+            return False
+            
+        # 复制备份文件到原始位置
+        shutil.copy2(backup_path, original_path)
+        logger.info(f"文件已从 {backup_path} 恢复")
         return True
     except Exception as e:
-        logger.error(f"备份文件失败: {str(e)}")
-        return False
-
-
-def restore_backup_files(pkg_path: str, main_path: str) -> bool:
-    """
-    恢复备份文件
-
-    Args:
-        pkg_path: package.json 文件路径（未使用）
-        main_path: main.js 文件路径
-
-    Returns:
-        bool: 恢复是否成功
-    """
-    try:
-        # 只恢复 main.js
-        backup_main = f"{main_path}.bak"
-        if os.path.exists(backup_main):
-            shutil.copy2(backup_main, main_path)
-            logger.info(f"已恢复 main.js")
-            return True
-
-        logger.error("未找到备份文件")
-        return False
-    except Exception as e:
-        logger.error(f"恢复备份失败: {str(e)}")
+        logger.error(f"文件恢复失败: {str(e)}")
         return False
 
 
@@ -269,7 +247,7 @@ def main(restore_mode=False) -> None:
 
         if restore_mode:
             # 恢复备份
-            if restore_backup_files(pkg_path, main_path):
+            if restore_file(main_path):
                 logger.info("备份恢复完成")
             else:
                 logger.error("备份恢复失败")
@@ -292,7 +270,8 @@ def main(restore_mode=False) -> None:
         logger.info("版本检查通过，准备修改文件")
 
         # 备份文件
-        if not backup_files(pkg_path, main_path):
+        backup_path = backup_file(main_path)
+        if not backup_path:
             logger.error("文件备份失败，终止操作")
             sys.exit(1)
 
