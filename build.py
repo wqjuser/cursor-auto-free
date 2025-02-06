@@ -169,6 +169,22 @@ def build():
                     shutil.copy2(config_src, config_dst_ui)
                 except Exception as e:
                     print(f"\033[93mWarning: Failed to copy config files: {e}\033[0m")
+            elif system == "darwin":
+                config_src = os.path.abspath("config.ini.example")
+                # 为CLI版本复制
+                config_dst_cli = os.path.join(output_dir, "CursorPro_CLI.app", "Contents", "MacOS", "config.ini")
+                os.makedirs(os.path.dirname(config_dst_cli), exist_ok=True)
+                
+                # 为UI版本复制
+                config_dst_ui = os.path.join(output_dir, "CursorPro.app", "Contents", "MacOS", "config.ini")
+                os.makedirs(os.path.dirname(config_dst_ui), exist_ok=True)
+                
+                try:
+                    import shutil
+                    shutil.copy2(config_src, config_dst_cli)
+                    shutil.copy2(config_src, config_dst_ui)
+                except Exception as e:
+                    print(f"\033[93mWarning: Failed to copy config files: {e}\033[0m")
 
         # Copy .env.example file
         if os.path.exists(".env.example"):
@@ -180,6 +196,20 @@ def build():
                 env_dst_cli = os.path.join(output_dir, "CursorPro_CLI", ".env")
                 # 为UI版本复制
                 env_dst_ui = os.path.join(output_dir, "CursorPro", ".env")
+                
+                try:
+                    import shutil
+                    shutil.copy2(env_src, env_dst_cli)
+                    shutil.copy2(env_src, env_dst_ui)
+                except Exception as e:
+                    print(f"\033[93mWarning: Failed to copy env files: {e}\033[0m")
+            elif system == "darwin":
+                env_src = os.path.abspath(".env.example")
+                
+                # 为CLI版本复制
+                env_dst_cli = os.path.join(output_dir, "CursorPro_CLI.app", "Contents", "MacOS", ".env")
+                # 为UI版本复制
+                env_dst_ui = os.path.join(output_dir, "CursorPro.app", "Contents", "MacOS", ".env")
                 
                 try:
                     import shutil
