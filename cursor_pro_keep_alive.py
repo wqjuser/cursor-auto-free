@@ -423,8 +423,11 @@ if __name__ == "__main__":
     try:
         logging.info("\n=== 初始化程序 ===")
         success, cursor_path = ExitCursor()
-        logging.info("正在初始化浏览器...")
 
+        logging.info("处理Cursor...")
+        MachineIDResetter().reset_machine_ids()
+        logging.info("\n开始注册账号")
+        logging.info("正在初始化浏览器...")
         # 获取user_agent
         user_agent = get_user_agent()
         if not user_agent:
@@ -475,8 +478,7 @@ if __name__ == "__main__":
                 update_cursor_auth(
                     email=account, access_token=token, refresh_token=token
                 )
-                logging.info("处理Cursor...")
-                MachineIDResetter().reset_machine_ids()
+
                 logging.info("所有操作已完成")
                 is_success = True
             else:
