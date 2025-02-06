@@ -24,6 +24,8 @@ import tempfile
 import datetime
 import warnings
 import urllib3
+import ctypes
+import math
 
 # 配置日志
 log_file = os.path.join(tempfile.gettempdir(), f'cursor_pro_ui_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
@@ -48,6 +50,45 @@ if os.name == 'nt':
 warnings.filterwarnings('ignore', category=urllib3.exceptions.NotOpenSSLWarning)
 
 class CursorProUI:
+    # 在类的开始处定义圆角矩形方法
+    @staticmethod
+    def create_rounded_rectangle(canvas, x1, y1, x2, y2, radius=25, **kwargs):
+        """创建圆角矩形，使用更少的点但更高的平滑度"""
+        # 确保最小半径
+        radius = min(radius, (x2 - x1) / 2, (y2 - y1) / 2)
+        
+        # 定义关键点
+        points = [
+            # 左上角
+            x1 + radius, y1,
+            x2 - radius, y1,
+            # 右上角
+            x2, y1,
+            x2, y1 + radius,
+            # 右边
+            x2, y2 - radius,
+            x2, y2,
+            # 右下角
+            x2 - radius, y2,
+            x1 + radius, y2,
+            # 左下角
+            x1, y2,
+            x1, y2 - radius,
+            # 左边
+            x1, y1 + radius,
+            x1, y1,
+            # 回到起点
+            x1 + radius, y1
+        ]
+        
+        # 使用更高的平滑度
+        return canvas.create_polygon(
+            points,
+            smooth=True,
+            splinesteps=32,  # 增加样条曲线的平滑度
+            **kwargs
+        )
+
     def __init__(self):
         try:
             logging.info("Starting CursorPro UI")
@@ -66,13 +107,16 @@ class CursorProUI:
             # 添加窗口关闭处理
             self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
             
-            # 调整DPI缩放因子
-            self.scale_factor = min(self.root.winfo_fpixels('1i') / 96, 1.5)
+            # 调整DPI缩放因子，Mac上使用更大的缩放
+            if sys.platform == 'darwin':
+                self.scale_factor = 1.5  # 从2.0降到1.5
+            else:
+                self.scale_factor = min(self.root.winfo_fpixels('1i') / 96, 1.5)
             
             self.root.title("Cursor Pro 工具")
-            # 增加窗口基础高度，确保能显示完整日志框
-            base_width = 600
-            base_height = 600  # 从400增加到600
+            # 增加窗口基础高度
+            base_width = 400
+            base_height = 500  # 从400增加到600
             scaled_width = int(base_width * self.scale_factor)
             scaled_height = int(base_height * self.scale_factor)
             self.root.geometry(f"{scaled_width}x{scaled_height}")
@@ -104,11 +148,100 @@ class CursorProUI:
         
     def setup_fonts(self):
         """设置适应DPI的字体，调整基础字体大小"""
-        self.title_font = ("Microsoft YaHei UI", int(18 * self.scale_factor), "bold")
-        self.subtitle_font = ("Microsoft YaHei UI", int(9 * self.scale_factor))
-        self.button_font = ("Microsoft YaHei UI", int(9 * self.scale_factor))
-        self.text_font = ("Microsoft YaHei UI", int(9 * self.scale_factor))
+        base_size = 12 if sys.platform == 'darwin' else 9  # Mac上从14降到12
+        
+        # 根据操作系统选择合适的字体
+        if sys.platform == 'darwin':
+            font_family = "SF Pro"  # Mac 默认系统字体
+            fallback_font = "Helvetica Neue"  # 备选字体
+        else:
+            font_family = "Microsoft YaHei UI"  # Windows 默认中文字体
+            fallback_font = "Segoe UI"  # Windows 备选字体
+        
+        self.title_font = (font_family, int(base_size * 1.8 * self.scale_factor), "bold")
+        self.subtitle_font = (font_family, int(base_size * self.scale_factor))
+        self.button_font = (font_family, int(base_size * self.scale_factor))
+        self.text_font = (font_family, int(base_size * self.scale_factor))
+        
+        # 如果主字体不可用，使用备选字体
+        try:
+            test_label = tk.Label(self.root, font=self.title_font)
+            test_label.destroy()
+        except:
+            self.title_font = (fallback_font, int(base_size * 1.8 * self.scale_factor), "bold")
+            self.subtitle_font = (fallback_font, int(base_size * self.scale_factor))
+            self.button_font = (fallback_font, int(base_size * self.scale_factor))
+            self.text_font = (fallback_font, int(base_size * self.scale_factor))
     
+    def create_rounded_button(self, parent, text, command, radius=10):
+        """创建圆角按钮"""
+        frame = tk.Frame(parent, bg=self.bg_color)
+        
+        # 计算按钮大小
+        btn_height = int(40 * self.scale_factor)
+        canvas = tk.Canvas(
+            frame, 
+            height=btn_height,
+            bg=self.bg_color,
+            highlightthickness=0,
+            relief='ridge'
+        )
+        canvas.pack(fill=tk.X, padx=0, pady=0)
+        
+        def update_canvas(event):
+            width = event.width
+            # 删除旧的按钮
+            canvas.delete("button")
+            # 重新创建按钮
+            self.create_rounded_rectangle(
+                canvas,
+                2,  # 左边界
+                2,  # 上边界
+                width-2,  # 右边界
+                btn_height-2,  # 下边界
+                radius=int(12 * self.scale_factor),
+                fill=self.primary_color,
+                outline="",
+                tags="button"
+            )
+            # 更新文本位置
+            canvas.coords("text", width/2, btn_height/2)
+            # 确保文本始终在按钮上方
+            canvas.tag_raise("text")
+        
+        # 创建初始按钮
+        self.create_rounded_rectangle(
+            canvas,
+            2, 2, 100, btn_height-2,
+            radius=int(12 * self.scale_factor),
+            fill=self.primary_color,
+            outline="",
+            tags="button"
+        )
+        
+        # 创建文本
+        canvas.create_text(
+            50, btn_height/2,
+            text=text,
+            fill='white',
+            font=self.button_font,
+            anchor='center',
+            tags="text"
+        )
+        
+        # 确保文本在按钮上方
+        canvas.tag_raise("text")
+        
+        def on_click(e):
+            command()
+        
+        canvas.bind('<Configure>', update_canvas)
+        canvas.bind('<Enter>', lambda e: canvas.itemconfig("button", fill=self.secondary_color))
+        canvas.bind('<Leave>', lambda e: canvas.itemconfig("button", fill=self.primary_color))
+        canvas.bind('<Button-1>', on_click)
+        
+        return frame
+
     def setup_ui(self):
         # 标题框架
         title_frame = tk.Frame(self.root, bg=self.bg_color)
@@ -134,53 +267,52 @@ class CursorProUI:
         
         # 按钮框架
         button_frame = tk.Frame(self.root, bg=self.bg_color)
-        button_frame.pack(pady=int(30 * self.scale_factor))
+        button_frame.pack(pady=int(20 * self.scale_factor), fill=tk.X)
         
-        # 自定义按钮样式
-        style = ttk.Style()
-        style.configure(
-            "Custom.TButton",
-            padding=int(10 * self.scale_factor),
-            font=self.button_font
-        )
-        
-        # 功能按钮
-        btn1 = ttk.Button(
+        # 创建圆角按钮
+        btn1_frame = self.create_rounded_button(
             button_frame,
-            text="一键注册并且享用Cursor",
-            style="Custom.TButton",
-            command=self.handle_register
+            "一键注册并且享用Cursor",
+            self.handle_register
         )
-        btn1.pack(pady=int(10 * self.scale_factor), 
-                 padx=int(20 * self.scale_factor), 
-                 fill=tk.X)
+        btn1_frame.pack(pady=(0, int(10 * self.scale_factor)),
+                       padx=int(20 * self.scale_factor),
+                       fill=tk.X)
         
-        btn2 = ttk.Button(
+        btn2_frame = self.create_rounded_button(
             button_frame,
-            text="仅仅修改文件或设备信息",
-            style="Custom.TButton",
-            command=self.handle_reset
+            "仅仅修改文件或设备信息",
+            self.handle_reset
         )
-        btn2.pack(pady=int(10 * self.scale_factor), 
-                 padx=int(20 * self.scale_factor), 
-                 fill=tk.X)
+        btn2_frame.pack(pady=(0, int(10 * self.scale_factor)),
+                       padx=int(20 * self.scale_factor),
+                       fill=tk.X)
         
-        btn3 = ttk.Button(
+        btn3_frame = self.create_rounded_button(
             button_frame,
-            text="恢复原始文件或设备信息",
-            style="Custom.TButton",
-            command=self.handle_restore
+            "恢复原始文件或设备信息",
+            self.handle_restore
         )
-        btn3.pack(pady=int(10 * self.scale_factor), 
-                 padx=int(20 * self.scale_factor), 
-                 fill=tk.X)
+        btn3_frame.pack(pady=(0, int(10 * self.scale_factor)),
+                       padx=int(20 * self.scale_factor),
+                       fill=tk.X)
         
         # 调整状态框架和文本框
         self.status_frame = tk.Frame(self.root, bg=self.bg_color)
         self.status_frame.pack(pady=int(20 * self.scale_factor), 
-                             fill=tk.BOTH,  # 改为BOTH以便垂直和水平都能扩展
-                             expand=True,   # 允许框架扩展填充剩余空间
+                             fill=tk.BOTH,
+                             expand=True,
                              padx=int(20 * self.scale_factor))
+        
+        # 添加日志区域标题
+        log_title = tk.Label(
+            self.status_frame,
+            text="操作日志",
+            font=self.button_font,
+            fg=self.primary_color,
+            bg=self.bg_color
+        )
+        log_title.pack(anchor='w', pady=(0, int(5 * self.scale_factor)))
         
         # 添加滚动条
         scrollbar = ttk.Scrollbar(self.status_frame)
@@ -188,13 +320,13 @@ class CursorProUI:
         
         self.status_text = tk.Text(
             self.status_frame,
-            height=12,  # 增加文本框的高度
+            height=20,
             wrap=tk.WORD,
             font=self.text_font,
             bg="white",
-            yscrollcommand=scrollbar.set  # 绑定滚动条
+            yscrollcommand=scrollbar.set
         )
-        self.status_text.pack(fill=tk.BOTH, expand=True)  # 允许文本框扩展填充
+        self.status_text.pack(fill=tk.BOTH, expand=True)
         
         # 配置滚动条
         scrollbar.config(command=self.status_text.yview)
@@ -216,11 +348,42 @@ class CursorProUI:
         else:
             self.root.after(0, _update)
         
+    def request_admin(self):
+        """请求管理员权限"""
+        try:
+            if sys.platform == 'darwin':  # macOS
+                script = '''
+                    do shell script "echo 'Requesting admin privileges...'" with administrator privileges
+                '''
+                os.system(f"osascript -e '{script}'")
+                
+            elif sys.platform == 'win32':  # Windows
+                if not is_admin():
+                    # 使用 sys.executable 获取当前 Python 解释器路径
+                    script = f'"{sys.executable}" "{sys.argv[0]}"'
+                    ctypes.windll.shell32.ShellExecuteW(
+                        None, 
+                        "runas",  # 请求管理员权限
+                        sys.executable,
+                        script,
+                        None,
+                        1  # SW_SHOWNORMAL
+                    )
+                    sys.exit()
+                
+        except Exception as e:
+            self.update_status(f"请求管理员权限失败: {str(e)}")
+            return False
+        return True
+
     def handle_register(self):
         if not is_admin():
-            messagebox.showerror("错误", "请以管理员权限运行此程序！")
-            request_admin()
-            return
+            if messagebox.askyesno("权限请求", "此操作需要管理员权限，是否继续？"):
+                if not self.request_admin():
+                    messagebox.showerror("错误", "请以管理员权限运行此程序！")
+                    return
+            else:
+                return
             
         def register_thread():
             browser_manager = None
@@ -277,7 +440,7 @@ class CursorProUI:
                     
                     if self.sign_up_account_ui(browser, tab, account, password, first_name, last_name, sign_up_url,settings_url):
                         self.update_status("注册成功")
-                        # self.update_status("正在获取会话令牌...")
+                        self.update_status("正在获取会话令牌...")
                         # token = get_cursor_session_token(tab)
                         # if token:
                         #     self.update_status("更新认证信息...")
@@ -311,9 +474,12 @@ class CursorProUI:
         
     def handle_reset(self):
         if not is_admin():
-            messagebox.showerror("错误", "请以管理员权限运行此程序！")
-            request_admin()
-            return
+            if messagebox.askyesno("权限请求", "此操作需要管理员权限，是否继续？"):
+                if not self.request_admin():
+                    messagebox.showerror("错误", "请以管理员权限运行此程序！")
+                    return
+            else:
+                return
             
         success, _ = ExitCursor()
         if success:
@@ -324,9 +490,12 @@ class CursorProUI:
             
     def handle_restore(self):
         if not is_admin():
-            messagebox.showerror("错误", "请以管理员权限运行此程序！")
-            request_admin()
-            return
+            if messagebox.askyesno("权限请求", "此操作需要管理员权限，是否继续？"):
+                if not self.request_admin():
+                    messagebox.showerror("错误", "请以管理员权限运行此程序！")
+                    return
+            else:
+                return
             
         success, _ = ExitCursor()
         if success:
@@ -493,9 +662,28 @@ class CursorProUI:
 
 if __name__ == "__main__":
     try:
+        # 确保日志目录存在
+        log_dir = os.path.expanduser("~/Library/Logs/CursorPro")
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # 设置日志文件路径
+        log_file = os.path.join(log_dir, f'cursor_pro_ui_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+        
+        # 配置日志
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
+        
+        logging.info("Application starting...")
         app = CursorProUI()
         app.run()
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}", exc_info=True)
-        messagebox.showerror("错误", f"致命错误: {str(e)}\n详细日志已保存到: {log_file}")
+        # 在控制台和文件中都记录错误
+        print(f"Fatal error: {str(e)}\nLog file: {log_file}")
         sys.exit(1) 
