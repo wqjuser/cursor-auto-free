@@ -22,6 +22,8 @@ import random
 import logging
 import tempfile
 import datetime
+import warnings
+import urllib3
 
 # 配置日志
 log_file = os.path.join(tempfile.gettempdir(), f'cursor_pro_ui_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
@@ -42,10 +44,19 @@ if os.name == 'nt':
     except:
         pass
 
+# 忽略 SSL 警告
+warnings.filterwarnings('ignore', category=urllib3.exceptions.NotOpenSSLWarning)
+
 class CursorProUI:
     def __init__(self):
         try:
             logging.info("Starting CursorPro UI")
+            
+            # 设置环境变量以处理 SSL 问题
+            if sys.platform == 'darwin':
+                os.environ['CURL_CA_BUNDLE'] = ''
+                os.environ['REQUESTS_CA_BUNDLE'] = ''
+                
             self.root = tk.Tk()
             
             # 在Mac上保持终端窗口打开

@@ -137,9 +137,11 @@ if is_mac:
         'CFBundlePackageType': 'APPL',
         'CFBundleShortVersionString': '1.0.0',
         'LSBackgroundOnly': False,
-        'LSMinimumSystemVersion': '10.10.0',
+        'LSMinimumSystemVersion': '10.13.0',  # 降低最低系统要求
         'NSHighResolutionCapable': True,
         'NSRequiresAquaSystemAppearance': False,
+        'NSAppleEventsUsageDescription': 'App requires access to run properly',
+        'NSAppleScriptEnabled': True,
     }
     
     # CLI版本的bundle

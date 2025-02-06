@@ -108,6 +108,15 @@ def build():
         "--noconfirm",
     ]
 
+    # Mac 特定的环境变量设置
+    if system == "darwin":
+        build_env = os.environ.copy()
+        build_env['DYLD_LIBRARY_PATH'] = ''  # 清除动态库路径
+        build_env['CURL_CA_BUNDLE'] = ''     # 清除 SSL 证书路径
+        build_env['REQUESTS_CA_BUNDLE'] = '' # 清除 requests 证书路径
+    else:
+        build_env = None
+    
     loading = LoadingAnimation()
     try:
         simulate_progress("Building CLI and UI versions...", 2.0)
@@ -118,7 +127,8 @@ def build():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             encoding='utf-8',
-            errors='ignore'
+            errors='ignore',
+            env=build_env  # 使用修改后的环境变量
         )
         
         stdout, stderr = process.communicate()
@@ -221,10 +231,12 @@ def build():
     except Exception as e:
         print(f"\033[93mWarning: File copying failed: {e}\033[0m")
 
-    # 在构建完成后添加执行权限（仅Mac）
+    # 在构建完成后添加执行权限和配置（仅Mac）
     if system == "darwin":
         try:
-            simulate_progress("Setting permissions...", 0.5)
+            simulate_progress("Configuring Mac application...", 0.5)
+            
+            # 设置执行权限
             cli_path = os.path.join(output_dir, "CursorPro_CLI.app", "Contents", "MacOS", "CursorPro_CLI")
             ui_path = os.path.join(output_dir, "CursorPro.app", "Contents", "MacOS", "CursorPro")
             
@@ -232,10 +244,21 @@ def build():
                 os.chmod(cli_path, 0o755)
             if os.path.exists(ui_path):
                 os.chmod(ui_path, 0o755)
+            
+            # 创建 .env 文件设置 SSL 配置
+            env_content = """
+CURL_CA_BUNDLE=
+REQUESTS_CA_BUNDLE=
+PYTHONWARNINGS=ignore:NotOpenSSLWarning
+"""
+            for app_path in [cli_path, ui_path]:
+                env_file = os.path.join(os.path.dirname(app_path), ".env")
+                with open(env_file, "w") as f:
+                    f.write(env_content)
                 
-            print("\033[92mPermissions set successfully\033[0m")
+            print("\033[92mMac configuration completed\033[0m")
         except Exception as e:
-            print(f"\033[93mWarning: Failed to set permissions: {e}\033[0m")
+            print(f"\033[93mWarning: Failed to configure Mac application: {e}\033[0m")
     
     print(f"\n\033[92mBuild completed successfully!\033[0m")
     if system == "darwin":
