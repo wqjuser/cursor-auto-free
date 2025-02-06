@@ -426,63 +426,68 @@ if __name__ == "__main__":
 
         logging.info("处理Cursor...")
         MachineIDResetter().reset_machine_ids()
-        logging.info("\n开始注册账号")
-        logging.info("正在初始化浏览器...")
-        # 获取user_agent
-        user_agent = get_user_agent()
-        if not user_agent:
-            logging.error("获取user agent失败，使用默认值")
-            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        logging.info("\n是否需要注册账号？(y/n)")
+        register = input().strip().lower()
+        if register=="y":
+            logging.info("\n开始注册账号")
+            logging.info("正在初始化浏览器...")
+            # 获取user_agent
+            user_agent = get_user_agent()
+            if not user_agent:
+                logging.error("获取user agent失败，使用默认值")
+                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-        # 剔除user_agent中的"HeadlessChrome"
-        user_agent = user_agent.replace("HeadlessChrome", "Chrome")
+            # 剔除user_agent中的"HeadlessChrome"
+            user_agent = user_agent.replace("HeadlessChrome", "Chrome")
 
-        browser_manager = BrowserManager()
-        browser = browser_manager.init_browser(user_agent)
+            browser_manager = BrowserManager()
+            browser = browser_manager.init_browser(user_agent)
 
-        # 获取并打印浏览器的user-agent
-        user_agent = browser.latest_tab.run_js("return navigator.userAgent")
+            # 获取并打印浏览器的user-agent
+            user_agent = browser.latest_tab.run_js("return navigator.userAgent")
 
-        logging.info("正在初始化邮箱验证模块...")
-        email_handler = EmailVerificationHandler()
+            logging.info("正在初始化邮箱验证模块...")
+            email_handler = EmailVerificationHandler()
 
-        logging.info("\n=== 配置信息 ===")
-        login_url = "https://authenticator.cursor.sh"
-        sign_up_url = "https://authenticator.cursor.sh/sign-up"
-        settings_url = "https://www.cursor.com/settings"
-        mail_url = "https://tempmail.plus"
+            logging.info("\n=== 配置信息 ===")
+            login_url = "https://authenticator.cursor.sh"
+            sign_up_url = "https://authenticator.cursor.sh/sign-up"
+            settings_url = "https://www.cursor.com/settings"
+            mail_url = "https://tempmail.plus"
 
-        logging.info("正在生成随机账号信息...")
-        email_generator = EmailGenerator()
-        account = email_generator.generate_email()
-        password = email_generator.default_password
-        first_name = email_generator.default_first_name
-        last_name = email_generator.default_last_name
+            logging.info("正在生成随机账号信息...")
+            email_generator = EmailGenerator()
+            account = email_generator.generate_email()
+            password = email_generator.default_password
+            first_name = email_generator.default_first_name
+            last_name = email_generator.default_last_name
 
-        logging.info(f"生成的邮箱账号: {account}")
-        auto_update_cursor_auth = True
+            logging.info(f"生成的邮箱账号: {account}")
+            auto_update_cursor_auth = True
 
-        tab = browser.latest_tab
+            tab = browser.latest_tab
 
-        tab.run_js("try { turnstile.reset() } catch(e) { }")
+            tab.run_js("try { turnstile.reset() } catch(e) { }")
 
-        logging.info("\n=== 开始注册流程 ===")
-        logging.info(f"正在访问登录页面: {login_url}")
-        tab.get(login_url)
+            logging.info("\n=== 开始注册流程 ===")
+            logging.info(f"正在访问登录页面: {login_url}")
+            tab.get(login_url)
 
-        if sign_up_account(browser, tab):
-            logging.info("正在获取会话令牌...")
-            token = get_cursor_session_token(tab)
-            if token:
-                logging.info("更新认证信息...")
-                update_cursor_auth(
-                    email=account, access_token=token, refresh_token=token
-                )
+            if sign_up_account(browser, tab):
+                logging.info("正在获取会话令牌...")
+                token = get_cursor_session_token(tab)
+                if token:
+                    logging.info("更新认证信息...")
+                    update_cursor_auth(
+                        email=account, access_token=token, refresh_token=token
+                    )
 
-                logging.info("所有操作已完成")
-                is_success = True
-            else:
-                logging.error("获取会话令牌失败，注册流程未完成")
+                    logging.info("所有操作已完成")
+                    is_success = True
+                else:
+                    logging.error("获取会话令牌失败，注册流程未完成")
+        else:
+            is_success=True
 
     except Exception as e:
         logging.error(f"程序执行出现错误: {str(e)}")
