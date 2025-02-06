@@ -19,6 +19,20 @@ from cursor_pro_keep_alive import (
 from logo import print_logo
 import time
 import random
+import logging
+import tempfile
+import datetime
+
+# 配置日志
+log_file = os.path.join(tempfile.gettempdir(), f'cursor_pro_ui_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
 
 # 在文件开头添加DPI感知支持
 if os.name == 'nt':
@@ -30,29 +44,52 @@ if os.name == 'nt':
 
 class CursorProUI:
     def __init__(self):
-        self.root = tk.Tk()
+        try:
+            logging.info("Starting CursorPro UI")
+            self.root = tk.Tk()
+            
+            # 在Mac上保持终端窗口打开
+            if sys.platform == 'darwin':
+                self.root.createcommand('exit', self.on_closing)
+            
+            # 添加窗口关闭处理
+            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            
+            # 调整DPI缩放因子
+            self.scale_factor = min(self.root.winfo_fpixels('1i') / 96, 1.5)
+            
+            self.root.title("Cursor Pro 工具")
+            # 增加窗口基础高度，确保能显示完整日志框
+            base_width = 600
+            base_height = 600  # 从400增加到600
+            scaled_width = int(base_width * self.scale_factor)
+            scaled_height = int(base_height * self.scale_factor)
+            self.root.geometry(f"{scaled_width}x{scaled_height}")
+            
+            # 设置主题色
+            self.primary_color = "#2196F3"
+            self.secondary_color = "#1976D2"
+            self.bg_color = "#F5F5F5"
+            
+            self.root.configure(bg=self.bg_color)
+            
+            # 启用字体缩放
+            self.setup_fonts()
+            self.setup_ui()
+            
+        except Exception as e:
+            logging.error(f"Initialization error: {str(e)}", exc_info=True)
+            messagebox.showerror("错误", f"初始化失败: {str(e)}\n详细日志已保存到: {log_file}")
+            sys.exit(1)
         
-        # 调整DPI缩放因子
-        self.scale_factor = min(self.root.winfo_fpixels('1i') / 96, 1.5)
-        
-        self.root.title("Cursor Pro 工具")
-        # 增加窗口基础高度，确保能显示完整日志框
-        base_width = 600
-        base_height = 600  # 从400增加到600
-        scaled_width = int(base_width * self.scale_factor)
-        scaled_height = int(base_height * self.scale_factor)
-        self.root.geometry(f"{scaled_width}x{scaled_height}")
-        
-        # 设置主题色
-        self.primary_color = "#2196F3"
-        self.secondary_color = "#1976D2"
-        self.bg_color = "#F5F5F5"
-        
-        self.root.configure(bg=self.bg_color)
-        
-        # 启用字体缩放
-        self.setup_fonts()
-        self.setup_ui()
+    def on_closing(self):
+        """窗口关闭处理"""
+        try:
+            logging.info("Application closing")
+            self.root.quit()
+        except Exception as e:
+            logging.error(f"Error during closing: {str(e)}", exc_info=True)
+            sys.exit(1)
         
     def setup_fonts(self):
         """设置适应DPI的字体，调整基础字体大小"""
@@ -435,8 +472,19 @@ class CursorProUI:
             return False
         
     def run(self):
-        self.root.mainloop()
+        try:
+            logging.info("Starting main loop")
+            self.root.mainloop()
+        except Exception as e:
+            logging.error(f"Runtime error: {str(e)}", exc_info=True)
+            messagebox.showerror("错误", f"运行时错误: {str(e)}\n详细日志已保存到: {log_file}")
+            sys.exit(1)
 
 if __name__ == "__main__":
-    app = CursorProUI()
-    app.run() 
+    try:
+        app = CursorProUI()
+        app.run()
+    except Exception as e:
+        logging.error(f"Fatal error: {str(e)}", exc_info=True)
+        messagebox.showerror("错误", f"致命错误: {str(e)}\n详细日志已保存到: {log_file}")
+        sys.exit(1) 

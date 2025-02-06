@@ -111,15 +111,15 @@ exe_ui = EXE(
     b.datas,
     [],
     name='CursorPro',
-    debug=False,
+    debug=True,  # 启用调试
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True if is_mac else False,  # Mac版本显示控制台以查看错误
     disable_windowed_traceback=False,
-    argv_emulation=is_mac,  # Mac需要argv模拟
+    argv_emulation=is_mac,
     target_arch=target_arch,
     codesign_identity=None,
     entitlements_file=None,

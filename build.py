@@ -221,7 +221,26 @@ def build():
     except Exception as e:
         print(f"\033[93mWarning: File copying failed: {e}\033[0m")
 
+    # 在构建完成后添加执行权限（仅Mac）
+    if system == "darwin":
+        try:
+            simulate_progress("Setting permissions...", 0.5)
+            cli_path = os.path.join(output_dir, "CursorPro_CLI.app", "Contents", "MacOS", "CursorPro_CLI")
+            ui_path = os.path.join(output_dir, "CursorPro.app", "Contents", "MacOS", "CursorPro")
+            
+            if os.path.exists(cli_path):
+                os.chmod(cli_path, 0o755)
+            if os.path.exists(ui_path):
+                os.chmod(ui_path, 0o755)
+                
+            print("\033[92mPermissions set successfully\033[0m")
+        except Exception as e:
+            print(f"\033[93mWarning: Failed to set permissions: {e}\033[0m")
+    
     print(f"\n\033[92mBuild completed successfully!\033[0m")
+    if system == "darwin":
+        print("\033[93mFor debugging, run the following command:\033[0m")
+        print(f"\033[93m{os.path.join(output_dir, 'CursorPro.app', 'Contents', 'MacOS', 'CursorPro')}\033[0m")
     print(f"\033[92mCLI version: {os.path.join(output_dir, 'CursorPro_CLI')}\033[0m")
     print(f"\033[92mUI version: {os.path.join(output_dir, 'CursorPro')}\033[0m")
 
