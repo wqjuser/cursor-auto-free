@@ -110,16 +110,15 @@ def build():
 
     loading = LoadingAnimation()
     try:
-        simulate_progress("Running PyInstaller...", 2.0)
+        simulate_progress("Building CLI and UI versions...", 2.0)
         loading.start("Building in progress")
         
-        # 修改这里，添加编码设置
         process = subprocess.Popen(
             pyinstaller_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            encoding='utf-8',  # 指定编码
-            errors='ignore'    # 忽略无法解码的字符
+            encoding='utf-8',
+            errors='ignore'
         )
         
         stdout, stderr = process.communicate()
@@ -149,36 +148,52 @@ def build():
     finally:
         loading.stop()
 
-    # 修改文件复制部分
+    # 复制配置文件
     try:
         # Copy config file
         if os.path.exists("config.ini.example"):
-            simulate_progress("Copying configuration file...", 0.5)
+            simulate_progress("Copying configuration files...", 0.5)
             if system == "windows":
+                # 为CLI版本复制
                 config_src = os.path.abspath("config.ini.example")
-                config_dst = os.path.join(output_dir, "config.ini")
+                config_dst_cli = os.path.join(output_dir, "CursorPro_CLI", "config.ini")
+                os.makedirs(os.path.dirname(config_dst_cli), exist_ok=True)
+                
+                # 为UI版本复制
+                config_dst_ui = os.path.join(output_dir, "CursorPro", "config.ini")
+                os.makedirs(os.path.dirname(config_dst_ui), exist_ok=True)
+                
                 try:
                     import shutil
-                    shutil.copy2(config_src, config_dst)
+                    shutil.copy2(config_src, config_dst_cli)
+                    shutil.copy2(config_src, config_dst_ui)
                 except Exception as e:
-                    print(f"\033[93mWarning: Failed to copy config file: {e}\033[0m")
+                    print(f"\033[93mWarning: Failed to copy config files: {e}\033[0m")
 
         # Copy .env.example file
         if os.path.exists(".env.example"):
-            simulate_progress("Copying environment file...", 0.5)
+            simulate_progress("Copying environment files...", 0.5)
             if system == "windows":
                 env_src = os.path.abspath(".env.example")
-                env_dst = os.path.join(output_dir, ".env")
+                
+                # 为CLI版本复制
+                env_dst_cli = os.path.join(output_dir, "CursorPro_CLI", ".env")
+                # 为UI版本复制
+                env_dst_ui = os.path.join(output_dir, "CursorPro", ".env")
+                
                 try:
                     import shutil
-                    shutil.copy2(env_src, env_dst)
+                    shutil.copy2(env_src, env_dst_cli)
+                    shutil.copy2(env_src, env_dst_ui)
                 except Exception as e:
-                    print(f"\033[93mWarning: Failed to copy env file: {e}\033[0m")
+                    print(f"\033[93mWarning: Failed to copy env files: {e}\033[0m")
 
     except Exception as e:
         print(f"\033[93mWarning: File copying failed: {e}\033[0m")
 
-    print(f"\n\033[92mBuild completed successfully! Output directory: {output_dir}\033[0m")
+    print(f"\n\033[92mBuild completed successfully!\033[0m")
+    print(f"\033[92mCLI version: {os.path.join(output_dir, 'CursorPro_CLI')}\033[0m")
+    print(f"\033[92mUI version: {os.path.join(output_dir, 'CursorPro')}\033[0m")
 
 
 if __name__ == "__main__":
