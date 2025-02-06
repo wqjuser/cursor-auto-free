@@ -98,99 +98,44 @@ def save_screenshot(tab, prefix="turnstile"):
         return None
 
 
-def handle_turnstile(tab, max_wait_time=60, retry_attempts=3):
-    """
-    处理 Turnstile 人机验证
-
-    Args:
-        tab: 浏览器标签页对象
-        max_wait_time: 最大等待时间（秒）
-        retry_attempts: 验证失败后的重试次数
-
-    Returns:
-        bool: 验证是否成功
-    """
+def handle_turnstile(tab):
     logging.info("正在检测 Turnstile 验证...")
-    start_time = time.time()
+    save_screenshot(tab, "turnstile")
+    try:
+        while True:
+            try:
+                challengeCheck = (
+                    tab.ele("@id=cf-turnstile", timeout=2)
+                    .child()
+                    .shadow_root.ele("tag:iframe")
+                    .ele("tag:body")
+                    .sr("tag:input")
+                )
 
-    success_selectors = {
-        "password": "@name=password",
-        "verification": "@data-index=0",
-        "settings": "Account Settings",
-    }
+                if challengeCheck:
+                    logging.info("检测到 Turnstile 验证，正在处理...")
+                    time.sleep(random.uniform(1, 3))
+                    challengeCheck.click()
+                    time.sleep(2)
+                    logging.info("Turnstile 验证通过")
+                    save_screenshot(tab, "turnstile_pass")
+                    return True
+            except:
+                pass
 
-    while time.time() - start_time < max_wait_time:
-        try:
-            # 检查是否已经通过验证
-            for name, selector in success_selectors.items():
-                if tab.ele(selector, timeout=1):
-                    logging.info(f"验证成功 - 已到达{name}页面")
-                    break
-
-            # 检查并处理 Turnstile 验证
-            turnstile = tab.ele("@id=cf-turnstile", timeout=1)
-            if turnstile:
-                for attempt in range(retry_attempts):
-                    try:
-                        challengeCheck = (
-                            turnstile.child()
-                            .shadow_root.ele("tag:iframe")
-                            .ele("tag:body")
-                            .sr("tag:input")
-                        )
-
-                        if challengeCheck:
-                            logging.info(
-                                f"检测到 Turnstile 验证，正在处理... (尝试 {attempt + 1}/{retry_attempts})"
-                            )
-                            time.sleep(random.uniform(1, 2))
-                            challengeCheck.click()
-                            time.sleep(2)
-
-                            # 保存验证过程的截图
-                            save_screenshot(tab, f"turnstile_attempt_{attempt + 1}")
-
-                            # 检查验证失败提示
-                            error_text = (
-                                "Can't verify the user is human. Please try again."
-                            )
-
-                            # 检查验证失败的标志，使用更精确的选择器
-                            error_selectors = [
-                                "@data-accent-color=red",  # 红色提示div
-                                f"//div[contains(@class, 'rt-Text') and contains(text(), '{error_text}')]",
-                                # 包含特定类和文本的div
-                                f"//div[@data-accent-color='red' and contains(text(), '{error_text}')]",  # 最精确的选择器
-                            ]
-
-                            is_failed = any(
-                                tab.ele(selector, timeout=2)
-                                for selector in error_selectors
-                            )
-
-                            if not is_failed:
-                                logging.info("人机验证成功")
-                                save_screenshot(tab, "turnstile_success")
-                                return True
-
-                            logging.warning(
-                                f"验证失败，尝试重试 ({attempt + 1}/{retry_attempts})"
-                            )
-                            # 保存失败的截图
-                            save_screenshot(tab, f"turnstile_fail_{attempt + 1}")
-
-                    except Exception as e:
-                        logging.debug(f"处理验证时发生异常: {str(e)}")
-                        continue
-
-            time.sleep(1)
-
-        except Exception as e:
-            logging.debug(f"验证过程发生异常: {str(e)}")
-            time.sleep(1)
-
-    logging.error(f"Turnstile 验证超时，已等待 {max_wait_time} 秒")
-    return False
+            if tab.ele("@name=password"):
+                logging.info("验证成功 - 已到达密码输入页面")
+                break
+            if tab.ele("@data-index=0"):
+                logging.info("验证成功 - 已到达验证码输入页面")
+                break
+            if tab.ele("Account Settings"):
+                logging.info("验证成功 - 已到达账户设置页面")
+                break
+            time.sleep(random.uniform(1, 2))
+    except Exception as e:
+        logging.error(f"Turnstile 验证失败: {str(e)}")
+        return False
 
 
 def get_cursor_session_token(tab, max_attempts=3, retry_interval=2):

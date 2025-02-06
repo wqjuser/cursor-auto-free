@@ -79,58 +79,57 @@ class MachineIDResetter:
                 sys.exit(1)
             
             is_045_version = patch_cursor_get_machine_id.version_check(version, min_version="0.45.0")
-            if not is_045_version:
-                print(f"{Fore.CYAN}{EMOJI['INFO']}正在检查配置文件...{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}{EMOJI['INFO']}正在检查配置文件...{Style.RESET_ALL}")
 
-                # 检查文件是否存在
-                if not os.path.exists(self.db_path):
-                    print(
-                        f"{Fore.RED}{EMOJI['ERROR']}配置文件不存在: {self.db_path}{Style.RESET_ALL}"
-                    )
-                    return False
+            # 检查文件是否存在
+            if not os.path.exists(self.db_path):
+                print(
+                    f"{Fore.RED}{EMOJI['ERROR']}配置文件不存在: {self.db_path}{Style.RESET_ALL}"
+                )
+                return False
 
-                # 检查文件权限
-                if not os.access(self.db_path, os.R_OK | os.W_OK):
-                    print(
-                        f"{Fore.RED}{EMOJI['ERROR']} 无法读写配置文件，请检查文件权限！{Style.RESET_ALL}"
-                    )
-                    print(
-                        f"{Fore.RED}{EMOJI['ERROR']} 如果你使用过 go-cursor-help 来修改 ID; 请修改文件只读权限 {self.db_path} {Style.RESET_ALL}"
-                    )
-                    return False
+            # 检查文件权限
+            if not os.access(self.db_path, os.R_OK | os.W_OK):
+                print(
+                    f"{Fore.RED}{EMOJI['ERROR']} 无法读写配置文件，请检查文件权限！{Style.RESET_ALL}"
+                )
+                print(
+                    f"{Fore.RED}{EMOJI['ERROR']} 如果你使用过 go-cursor-help 来修改 ID; 请修改文件只读权限 {self.db_path} {Style.RESET_ALL}"
+                )
+                return False
 
-                # 读取现有配置
-                print(f"{Fore.CYAN}{EMOJI['FILE']} 读取当前配置...{Style.RESET_ALL}")
-                with open(self.db_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
+            # 读取现有配置
+            print(f"{Fore.CYAN}{EMOJI['FILE']} 读取当前配置...{Style.RESET_ALL}")
+            with open(self.db_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
 
-                # 创建备份
-                backup_path = f"{self.db_path}.backup"
-                print(f"{Fore.CYAN}{EMOJI['BACKUP']} 创建配置文件备份...{Style.RESET_ALL}")
-                with open(backup_path, "w", encoding="utf-8") as f:
-                    json.dump(config, f, indent=4)
-                print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 备份文件已保存至: {backup_path}{Style.RESET_ALL}")
+            # 创建备份
+            backup_path = f"{self.db_path}.backup"
+            print(f"{Fore.CYAN}{EMOJI['BACKUP']} 创建配置文件备份...{Style.RESET_ALL}")
+            with open(backup_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
+            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 备份文件已保存至: {backup_path}{Style.RESET_ALL}")
 
-                # 生成新的ID
-                print(f"{Fore.CYAN}{EMOJI['RESET']} 生成新的机器标识...{Style.RESET_ALL}")
-                new_ids = self.generate_new_ids()
+            # 生成新的ID
+            print(f"{Fore.CYAN}{EMOJI['RESET']} 生成新的机器标识...{Style.RESET_ALL}")
+            new_ids = self.generate_new_ids()
 
-                # 更新配置
-                config.update(new_ids)
+            # 更新配置
+            config.update(new_ids)
 
-                # 保存新配置
-                print(f"{Fore.CYAN}{EMOJI['FILE']} 保存新配置...{Style.RESET_ALL}")
-                with open(self.db_path, "w", encoding="utf-8") as f:
-                    json.dump(config, f, indent=4)
+            # 保存新配置
+            print(f"{Fore.CYAN}{EMOJI['FILE']} 保存新配置...{Style.RESET_ALL}")
+            with open(self.db_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
 
-                print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 机器标识重置成功！{Style.RESET_ALL}")
-                print(f"\n{Fore.CYAN}新的机器标识:{Style.RESET_ALL}")
-                for key, value in new_ids.items():
-                    print(f"{EMOJI['INFO']} {key}: {Fore.GREEN}{value}{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 机器标识重置成功！{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}新的机器标识:{Style.RESET_ALL}")
+            for key, value in new_ids.items():
+                print(f"{EMOJI['INFO']} {key}: {Fore.GREEN}{value}{Style.RESET_ALL}")
 
-                return True
-            else:
+            if  is_045_version:
                 patch_cursor_get_machine_id.main(restore_mode=False)
+            return True
 
         except PermissionError as e:
             print(f"{Fore.RED}{EMOJI['ERROR']} 权限错误: {str(e)}{Style.RESET_ALL}")
