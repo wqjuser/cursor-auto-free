@@ -389,13 +389,13 @@ class CursorProUI:
             browser_manager = None
             try:
                 self.update_status("=== 初始化程序 ===")
-                # success, cursor_path = ExitCursor()
-                # if not success:
-                #     self.update_status("请先关闭 Cursor 后再试")
-                #     return
+                success, cursor_path = ExitCursor()
+                if not success:
+                    self.update_status("请先关闭 Cursor 后再试")
+                    return
                     
                 self.update_status("正在重置设备信息...")
-                # MachineIDResetter().reset_machine_ids()
+                MachineIDResetter().reset_machine_ids()
                 self.update_status("设备信息重置完成")
                 
                 if messagebox.askyesno("确认", "是否需要注册新账号？"):
@@ -441,25 +441,25 @@ class CursorProUI:
                     if self.sign_up_account_ui(browser, tab, account, password, first_name, last_name, sign_up_url,settings_url):
                         self.update_status("注册成功")
                         self.update_status("正在获取会话令牌...")
-                        # token = get_cursor_session_token(tab)
-                        # if token:
-                        #     self.update_status("更新认证信息...")
-                        #     update_cursor_auth(
-                        #         email=account,
-                        #         access_token=token,
-                        #         refresh_token=token
-                        #     )
-                        #     self.update_status("认证信息更新完毕")
-                        #     self.update_status("\n=== 注册成功 ===")
-                        #     self.update_status(f"账号信息:\n邮箱: {account}\n密码: {password}")
-                        # else:
-                        #     self.update_status("获取会话令牌失败，注册流程未完成")
+                        token = get_cursor_session_token(tab)
+                        if token:
+                            self.update_status("更新认证信息...")
+                            update_cursor_auth(
+                                email=account,
+                                access_token=token,
+                                refresh_token=token
+                            )
+                            self.update_status("认证信息更新完毕")
+                            self.update_status("\n=== 注册成功 ===")
+                            self.update_status(f"账号信息:\n邮箱: {account}\n密码: {password}")
+                        else:
+                            self.update_status("获取会话令牌失败，注册流程未完成")
                     else:
                         self.update_status("注册失败")
                 
                 self.update_status("\n所有操作已完成")
-                # if messagebox.askyesno("完成", "是否要重启 Cursor？"):
-                #     self.restart_cursor(cursor_path)
+                if messagebox.askyesno("完成", "是否要重启 Cursor？"):
+                    self.restart_cursor(cursor_path)
                     
             except Exception as e:
                 self.update_status(f"发生错误: {str(e)}")
