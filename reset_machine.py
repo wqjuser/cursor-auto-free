@@ -155,43 +155,41 @@ class MachineIDResetter:
                 sys.exit(1)
             
             is_045_version = patch_cursor_get_machine_id.version_check(version, min_version="0.45.0")
-            if not is_045_version:
-                backup_path = f"{self.db_path}.backup"
-                
-                # 检查备份文件是否存在
-                if not os.path.exists(backup_path):
-                    print(f"{Fore.RED}{EMOJI['ERROR']} 备份文件不存在: {backup_path}{Style.RESET_ALL}")
-                    return False
-                    
-                # 检查备份文件权限
-                if not os.access(backup_path, os.R_OK):
-                    print(f"{Fore.RED}{EMOJI['ERROR']} 无法读取备份文件，请检查文件权限！{Style.RESET_ALL}")
-                    return False
-                    
-                # 读取备份配置
-                print(f"{Fore.CYAN}{EMOJI['FILE']} 读取备份配置...{Style.RESET_ALL}")
-                with open(backup_path, "r", encoding="utf-8") as f:
-                    backup_config = json.load(f)
-                    
-                # 检查原始文件权限
-                if not os.access(self.db_path, os.W_OK):
-                    print(f"{Fore.RED}{EMOJI['ERROR']} 无法写入配置文件，请检查文件权限！{Style.RESET_ALL}")
-                    return False
-                    
-                # 恢复配置
-                print(f"{Fore.CYAN}{EMOJI['RESET']} 正在恢复配置...{Style.RESET_ALL}")
-                with open(self.db_path, "w", encoding="utf-8") as f:
-                    json.dump(backup_config, f, indent=4)
-                    
-                print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 机器标识已恢复！{Style.RESET_ALL}")
-                print(f"\n{Fore.CYAN}已恢复的机器标识:{Style.RESET_ALL}")
-                for key in ['telemetry.devDeviceId', 'telemetry.macMachineId', 
-                           'telemetry.machineId', 'telemetry.sqmId']:
-                    if key in backup_config:
-                        print(f"{EMOJI['INFO']} {key}: {Fore.GREEN}{backup_config[key]}{Style.RESET_ALL}")
-                
-                return True
-            else:
+            backup_path = f"{self.db_path}.backup"
+
+            # 检查备份文件是否存在
+            if not os.path.exists(backup_path):
+                print(f"{Fore.RED}{EMOJI['ERROR']} 备份文件不存在: {backup_path}{Style.RESET_ALL}")
+                return False
+
+            # 检查备份文件权限
+            if not os.access(backup_path, os.R_OK):
+                print(f"{Fore.RED}{EMOJI['ERROR']} 无法读取备份文件，请检查文件权限！{Style.RESET_ALL}")
+                return False
+
+            # 读取备份配置
+            print(f"{Fore.CYAN}{EMOJI['FILE']} 读取备份配置...{Style.RESET_ALL}")
+            with open(backup_path, "r", encoding="utf-8") as f:
+                backup_config = json.load(f)
+
+            # 检查原始文件权限
+            if not os.access(self.db_path, os.W_OK):
+                print(f"{Fore.RED}{EMOJI['ERROR']} 无法写入配置文件，请检查文件权限！{Style.RESET_ALL}")
+                return False
+
+            # 恢复配置
+            print(f"{Fore.CYAN}{EMOJI['RESET']} 正在恢复配置...{Style.RESET_ALL}")
+            with open(self.db_path, "w", encoding="utf-8") as f:
+                json.dump(backup_config, f, indent=4)
+
+            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 机器标识已恢复！{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}已恢复的机器标识:{Style.RESET_ALL}")
+            for key in ['telemetry.devDeviceId', 'telemetry.macMachineId',
+                        'telemetry.machineId', 'telemetry.sqmId']:
+                if key in backup_config:
+                    print(f"{EMOJI['INFO']} {key}: {Fore.GREEN}{backup_config[key]}{Style.RESET_ALL}")
+
+            if  is_045_version:
                 patch_cursor_get_machine_id.main(restore_mode=True)
                 
             return True
