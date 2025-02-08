@@ -9,6 +9,13 @@ Using this script may violate the terms of use of Cursor. The author is not resp
 
 If you recognize the value of cursor, please support the genuine version and pay for the work of software developers.
 
+
+### The latest version of the script has added a prompt on whether to register an account
+### I have created a website for sharing Pro Trail accounts for everyone https://accounts.zxai.fun/
+### The accounts are all registered with temporary email addresses, and it is uncertain when they will expire
+### In order to enable more people to enjoy convenience, each IP or email is limited to only two accounts per day. In addition, to prevent malicious individuals from directly accessing the website from the source code, the debugging function has been simply disabled. Of course, these are all measures to prevent malicious individuals from using malicious methods, and we kindly ask all gods to accept mercy.
+### Of course, scripts can also automatically register accounts, but some people are always stuck in the last step, so this website has been created for your convenience, without waiting for the time-consuming process of registering an account.
+
 ## This tool only provides a trial channel for Cursor, please do not overly rely on it. This tool is free, please do not use it for sale.
 ## Simply download the corresponding system executable file from the releases on the right and run it
 
