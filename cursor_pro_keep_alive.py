@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+import requests  # 添加到文件顶部的导入部分
+
 from exit_cursor import ExitCursor
 from reset_machine import MachineIDResetter
 
@@ -185,7 +187,40 @@ def update_cursor_auth(email=None, access_token=None, refresh_token=None):
     return auth_manager.update_auth(email, access_token, refresh_token)
 
 
-def sign_up_account(browser, tab):
+def save_account_to_api(email, password, credits=150):
+    """保存账号信息到API
+    Args:
+        email: 邮箱账号
+        password: 密码
+        credits: 额度，默认150
+    Returns:
+        bool: 是否保存成功
+    """
+    api_url = "https://accounts.zxai.fun/api/accounts"
+    payload = {
+        "accounts": [
+            {
+                "email": email,
+                "password": password,
+                "credits": credits
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(api_url, json=payload)
+        if response.status_code == 200:
+            logging.info("账号信息已成功保存到数据库")
+            return True
+        else:
+            logging.error(f"保存账号信息失败，状态码: {response.status_code}")
+            return False
+    except Exception as e:
+        logging.error(f"调用保存账号接口出错: {str(e)}")
+        return False
+
+
+def sign_up_account(browser, tab, is_auto_register=False):
     logging.info("=== 开始注册账号流程 ===")
     logging.info(f"正在访问注册页面: {sign_up_url}")
     tab.get(sign_up_url)
@@ -259,30 +294,43 @@ def sign_up_account(browser, tab):
             logging.error(f"验证码处理过程出错: {str(e)}")
 
     handle_turnstile(tab)
-    wait_time = random.randint(3, 6)
-    for i in range(wait_time):
-        logging.info(f"等待系统处理中... 剩余 {wait_time - i} 秒")
-        time.sleep(1)
+    if not is_auto_register:
+        wait_time = random.randint(3, 6)
+        for i in range(wait_time):
+            logging.info(f"等待系统处理中... 剩余 {wait_time - i} 秒")
+            time.sleep(1)
 
-    logging.info("正在获取账户信息...")
-    tab.get(settings_url)
-    try:
-        usage_selector = (
-            "css:div.col-span-2 > div > div > div > div > "
-            "div:nth-child(1) > div.flex.items-center.justify-between.gap-2 > "
-            "span.font-mono.text-sm\\/\\[0\\.875rem\\]"
-        )
-        usage_ele = tab.ele(usage_selector)
-        if usage_ele:
-            usage_info = usage_ele.text
-            total_usage = usage_info.split("/")[-1].strip()
-            logging.info(f"账户可用额度上限: {total_usage}")
-    except Exception as e:
-        logging.error(f"获取账户额度信息失败: {str(e)}")
+        logging.info("正在获取账户信息...")
+        tab.get(settings_url)
+        try:
+            usage_selector = (
+                "css:div.col-span-2 > div > div > div > div > "
+                "div:nth-child(1) > div.flex.items-center.justify-between.gap-2 > "
+                "span.font-mono.text-sm\\/\\[0\\.875rem\\]"
+            )
+            usage_ele = tab.ele(usage_selector)
+            if usage_ele:
+                usage_info = usage_ele.text
+                total_usage = usage_info.split("/")[-1].strip()
+                logging.info(f"账户可用额度上限: {total_usage}")
+        except Exception as e:
+            logging.error(f"获取账户额度信息失败: {str(e)}")
 
     logging.info("\n=== 注册完成 ===")
     account_info = f"Cursor 账号信息:\n邮箱: {account}\n密码: {password}"
     logging.info(account_info)
+    if is_auto_register:
+        # 调用接口保存账号
+        try:
+            credits = 150  # 默认额度
+            save_result = save_account_to_api(account, password, credits)
+            if save_result:
+                logging.info("账号已成功保存到数据库")
+            else:
+                logging.warning("账号保存到数据库失败")
+        except Exception as e:
+            logging.error(f"保存账号过程出错: {str(e)}")
+
     time.sleep(5)
     return True
 
@@ -349,11 +397,12 @@ def show_menu():
     print("=== 此工具免费，如果你是通过购买获得请立即退款并举报卖家 ===\n")
     print("1. 一键注册并且享用Cursor")
     print("2. 仅仅修改文件或设备信息")
-    print("2. 恢复原始文件或设备信息")
+    print("3. 恢复原始文件或设备信息")
+    print("4. 随机批量注册账号")
 
     while True:
-        choice = input("\n请选择功能 (1-3): ").strip()
-        if choice in ['1', '2', '3']:
+        choice = input("\n请选择功能 (1-4): ").strip()
+        if choice in ['1', '2', '3', '4']:
             return int(choice)
         print("无效的选择，请重试")
 
@@ -388,6 +437,164 @@ def inner_restart_cursor():
         os._exit(1)
 
 
+def try_register(is_auto_register=False):
+    global browser_manager, email_handler, sign_up_url, settings_url, account, password, first_name, last_name, is_success
+    logging.info("\n开始注册账号")
+    logging.info("正在初始化浏览器...")
+    # 获取user_agent
+    user_agent = get_user_agent()
+    if not user_agent:
+        logging.error("获取user agent失败，使用默认值")
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    # 剔除user_agent中的"HeadlessChrome"
+    user_agent = user_agent.replace("HeadlessChrome", "Chrome")
+    browser_manager = BrowserManager()
+    browser = browser_manager.init_browser(user_agent)
+    # 获取并打印浏览器的user-agent
+    user_agent = browser.latest_tab.run_js("return navigator.userAgent")
+    logging.info("正在初始化邮箱验证模块...")
+    email_handler = EmailVerificationHandler()
+    logging.info("\n=== 配置信息 ===")
+    login_url = "https://authenticator.cursor.sh"
+    sign_up_url = "https://authenticator.cursor.sh/sign-up"
+    settings_url = "https://www.cursor.com/settings"
+    # mail_url = "https://tempmail.plus"
+    logging.info("正在生成随机账号信息...")
+    email_generator = EmailGenerator()
+    account = email_generator.generate_email()
+    password = email_generator.default_password
+    first_name = email_generator.default_first_name
+    last_name = email_generator.default_last_name
+    logging.info(f"生成的邮箱账号: {account}")
+    # auto_update_cursor_auth = True
+    tab = browser.latest_tab
+    tab.run_js("try { turnstile.reset() } catch(e) { }")
+    logging.info("\n=== 开始注册流程 ===")
+    logging.info(f"正在访问登录页面: {login_url}")
+    tab.get(login_url)
+    if sign_up_account(browser, tab, is_auto_register):
+        if not is_auto_register:
+            logging.info("正在获取会话令牌...")
+            token = get_cursor_session_token(tab)
+            if token:
+                logging.info("更新认证信息...")
+                update_cursor_auth(
+                    email=account, access_token=token, refresh_token=token
+                )
+
+                logging.info("所有操作已完成")
+                is_success = True
+            else:
+                logging.error("获取会话令牌失败，注册流程未完成")
+        else:
+            is_success = True
+
+    return browser_manager, is_success
+
+
+def batch_register(num_accounts):
+    """批量注册账号
+    Args:
+        num_accounts: 要注册的账号数量
+    """
+    successful_accounts = []
+    failed_attempts = 0
+    
+    for i in range(num_accounts):
+        # 切换代理
+        try:
+            # 获取代理列表
+            response = requests.get("http://127.0.0.1:9097/proxies/OKZTWO")
+            if response.status_code == 200:
+                proxy_data = response.json()
+                all_proxies = proxy_data.get('all', [])
+                
+                # 筛选出以"专线"和"Lv"开头的代理
+                valid_proxies = [
+                    proxy for proxy in all_proxies 
+                    if proxy.startswith(('专线', 'Lv'))
+                ]
+                
+                if valid_proxies:
+                    # 随机选择一个代理
+                    selected_proxy = random.choice(valid_proxies)
+                    proxy_payload = {"name": selected_proxy}
+                    
+                    # 切换到选中的代理
+                    put_response = requests.put(
+                        "http://127.0.0.1:9097/proxies/OKZTWO",
+                        json=proxy_payload
+                    )
+                    
+                    if put_response.status_code == 204:
+                        logging.info(f"成功切换到代理: {selected_proxy}")
+                        # 等待1秒
+                        time.sleep(1)
+                        
+                        # 获取当前IP
+                        try:
+                            ip_response = requests.get("http://ip-api.com/json")
+                            if ip_response.status_code == 200:
+                                ip_info = ip_response.json()
+                                current_ip = ip_info.get('query', 'unknown')
+                                logging.info(f"当前IP地址: {current_ip}")
+                        except Exception as e:
+                            logging.error(f"获取IP地址失败: {str(e)}")
+                    else:
+                        logging.error("切换代理失败")
+                else:
+                    logging.error("未找到符合条件的代理")
+            else:
+                logging.error("获取代理列表失败")
+        except Exception as e:
+            logging.error(f"代理切换过程出错: {str(e)}")
+
+        # 开始注册流程
+        logging.info(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
+        try:
+            browser_manager, is_success = try_register(is_auto_register=True)
+            if is_success:
+                successful_accounts.append({
+                    'email': account,
+                    'password': password
+                })
+                logging.info(f"第 {i + 1} 个账号注册成功")
+            else:
+                failed_attempts += 1
+                logging.error(f"第 {i + 1} 个账号注册失败")
+        except Exception as e:
+            failed_attempts += 1
+            logging.error(f"第 {i + 1} 个账号注册时发生错误: {str(e)}")
+        finally:
+            if browser_manager:
+                browser_manager.quit()
+
+        if i < num_accounts - 1:  # 如果不是最后一个账号，则添加延迟
+            # 随机延迟10-20秒
+            delay_seconds = random.uniform(10, 20)
+            logging.info(f"为避免频繁注册，将等待 {delay_seconds:.1f} 秒后继续下一个注册...")
+            time.sleep(delay_seconds)
+
+    # 打印注册结果摘要
+    logging.info("\n=== 批量注册完成 ===")
+    logging.info(f"成功注册账号数: {len(successful_accounts)}")
+    logging.info(f"失败注册数: {failed_attempts}")
+    
+    # 保存账号信息到文件
+    if successful_accounts:
+        filename = f"cursor_accounts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write("=== Cursor 账号信息 ===\n\n")
+                for acc in successful_accounts:
+                    f.write(f"邮箱: {acc['email']}\n")
+                    f.write(f"密码: {acc['password']}\n")
+                    f.write("-" * 30 + "\n")
+            logging.info(f"账号信息已保存到文件: {filename}")
+        except Exception as e:
+            logging.error(f"保存账号信息到文件时出错: {str(e)}")
+
+
 if __name__ == "__main__":
     if not is_admin():
         request_admin()
@@ -397,17 +604,7 @@ if __name__ == "__main__":
     choice = show_menu()
     cursor_path = ""
 
-    if choice == 3:
-        success, _ = ExitCursor()
-        if success:
-            MachineIDResetter().restore_machine_ids()
-            print("\n文件或设备信息恢复成功，按回车键退出...", end='', flush=True)
-            input()
-            sys.exit(0)
-        else:
-            print("Cursor 未能自动关闭，请手动关闭后重试")    
-
-    elif choice == 2:
+    if choice == 2:
         success, _ = ExitCursor()
         if success:
             MachineIDResetter().reset_machine_ids()
@@ -415,7 +612,33 @@ if __name__ == "__main__":
             input()
             sys.exit(0)
         else:
-            print("Cursor 未能自动关闭，请手动关闭后重试")    
+            print("Cursor 未能自动关闭，请手动关闭后重试")
+    elif choice == 3:
+        success, _ = ExitCursor()
+        if success:
+            MachineIDResetter().restore_machine_ids()
+            print("\n文件或设备信息恢复成功，按回车键退出...", end='', flush=True)
+            input()
+            sys.exit(0)
+        else:
+            print("Cursor 未能自动关闭，请手动关闭后重试")
+    elif choice == 4:
+        logging.info('开始批量注册账号')
+        time.sleep(1)
+        while True:
+            try:
+                num = input("\n请输入要注册的账号数量: ").strip()
+                num = int(num)
+                if num > 0:
+                    break
+                print("请输入大于0的数字")
+            except ValueError:
+                print("请输入有效的数字")
+
+        batch_register(num)
+        print("\n批量注册完成，按回车键退出...", end='', flush=True)
+        input()
+        sys.exit(0)
 
     # 原有的重置逻辑
     browser_manager = None
@@ -426,68 +649,13 @@ if __name__ == "__main__":
 
         logging.info("处理Cursor...")
         MachineIDResetter().reset_machine_ids()
+        time.sleep(2)
         logging.info("\n是否需要注册账号？(y/n)")
         register = input().strip().lower()
-        if register=="y":
-            logging.info("\n开始注册账号")
-            logging.info("正在初始化浏览器...")
-            # 获取user_agent
-            user_agent = get_user_agent()
-            if not user_agent:
-                logging.error("获取user agent失败，使用默认值")
-                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-
-            # 剔除user_agent中的"HeadlessChrome"
-            user_agent = user_agent.replace("HeadlessChrome", "Chrome")
-
-            browser_manager = BrowserManager()
-            browser = browser_manager.init_browser(user_agent)
-
-            # 获取并打印浏览器的user-agent
-            user_agent = browser.latest_tab.run_js("return navigator.userAgent")
-
-            logging.info("正在初始化邮箱验证模块...")
-            email_handler = EmailVerificationHandler()
-
-            logging.info("\n=== 配置信息 ===")
-            login_url = "https://authenticator.cursor.sh"
-            sign_up_url = "https://authenticator.cursor.sh/sign-up"
-            settings_url = "https://www.cursor.com/settings"
-            mail_url = "https://tempmail.plus"
-
-            logging.info("正在生成随机账号信息...")
-            email_generator = EmailGenerator()
-            account = email_generator.generate_email()
-            password = email_generator.default_password
-            first_name = email_generator.default_first_name
-            last_name = email_generator.default_last_name
-
-            logging.info(f"生成的邮箱账号: {account}")
-            auto_update_cursor_auth = True
-
-            tab = browser.latest_tab
-
-            tab.run_js("try { turnstile.reset() } catch(e) { }")
-
-            logging.info("\n=== 开始注册流程 ===")
-            logging.info(f"正在访问登录页面: {login_url}")
-            tab.get(login_url)
-
-            if sign_up_account(browser, tab):
-                logging.info("正在获取会话令牌...")
-                token = get_cursor_session_token(tab)
-                if token:
-                    logging.info("更新认证信息...")
-                    update_cursor_auth(
-                        email=account, access_token=token, refresh_token=token
-                    )
-
-                    logging.info("所有操作已完成")
-                    is_success = True
-                else:
-                    logging.error("获取会话令牌失败，注册流程未完成")
+        if register == "y":
+            browser_manager, _ = try_register()
         else:
-            is_success=True
+            is_success = True
 
     except Exception as e:
         logging.error(f"程序执行出现错误: {str(e)}")
