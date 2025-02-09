@@ -516,38 +516,65 @@ def batch_register(num_accounts):
                 ]
                 
                 if valid_proxies:
-                    # 随机选择一个代理
-                    selected_proxy = random.choice(valid_proxies)
-                    proxy_payload = {"name": selected_proxy}
+                    # 随机选择代理并检查存活状态，直到找到可用的代理
+                    random.shuffle(valid_proxies)  # 随机打乱代理列表
+                    found_alive_proxy = False
                     
-                    # 切换到选中的代理
-                    put_response = requests.put(
-                        "http://127.0.0.1:9097/proxies/OKZTWO",
-                        json=proxy_payload
-                    )
-                    
-                    if put_response.status_code == 204:
-                        logging.info(f"成功切换到代理: {selected_proxy}")
-                        # 等待1秒
-                        time.sleep(1)
+                    for selected_proxy in valid_proxies:
+                        # URL编码代理名称
+                        encoded_proxy = requests.utils.quote(selected_proxy)
                         
-                        # 获取当前IP
-                        try:
-                            ip_response = requests.get("http://ip-api.com/json")
-                            if ip_response.status_code == 200:
-                                ip_info = ip_response.json()
-                                current_ip = ip_info.get('query', 'unknown')
-                                logging.info(f"当前IP地址: {current_ip}")
-                        except Exception as e:
-                            logging.error(f"获取IP地址失败: {str(e)}")
-                    else:
-                        logging.error("切换代理失败")
+                        # 检查代理存活状态
+                        check_response = requests.get(f"http://127.0.0.1:9097/proxies/{encoded_proxy}")
+                        if check_response.status_code == 200:
+                            proxy_info = check_response.json()
+                            # 直接获取alive字段的值
+                            is_alive = proxy_info.get('alive')
+                            if is_alive:  # 如果代理存活
+                                found_alive_proxy = True
+                                logging.info(f"找到可用代理: {selected_proxy}")
+                                
+                                # 切换到选中的代理
+                                proxy_payload = {"name": selected_proxy}
+                                put_response = requests.put(
+                                    "http://127.0.0.1:9097/proxies/OKZTWO",
+                                    json=proxy_payload
+                                )
+                                
+                                if put_response.status_code == 204:
+                                    logging.info(f"成功切换到代理: {selected_proxy}")
+                                    # 等待1秒
+                                    time.sleep(1)
+                                    
+                                    # 获取当前IP
+                                    try:
+                                        ip_response = requests.get("http://ip-api.com/json")
+                                        if ip_response.status_code == 200:
+                                            ip_info = ip_response.json()
+                                            current_ip = ip_info.get('query', 'unknown')
+                                            logging.info(f"当前IP地址: {current_ip}")
+                                    except Exception as e:
+                                        logging.error(f"获取IP地址失败: {str(e)}")
+                                    break
+                                else:
+                                    logging.error("切换代理失败")
+                            else:
+                                logging.warning(f"代理 {selected_proxy} 未存活 (alive: {is_alive})，尝试下一个")
+                        else:
+                            logging.error(f"检查代理 {selected_proxy} 状态失败")
+                    
+                    if not found_alive_proxy:
+                        logging.error("未找到可用的存活代理")
+                        continue
                 else:
                     logging.error("未找到符合条件的代理")
+                    continue
             else:
                 logging.error("获取代理列表失败")
+                continue
         except Exception as e:
             logging.error(f"代理切换过程出错: {str(e)}")
+            continue
 
         # 开始注册流程
         logging.info(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
