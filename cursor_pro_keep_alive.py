@@ -551,6 +551,7 @@ def batch_register(num_accounts):
 
         # 开始注册流程
         logging.info(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
+        browser_manager = None
         try:
             browser_manager, is_success = try_register(is_auto_register=True)
             if is_success:
