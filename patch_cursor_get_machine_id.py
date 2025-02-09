@@ -215,8 +215,12 @@ def backup_files(pkg_path: str, main_path: str) -> bool:
     """
     try:
         # 只备份 main.js
+        backup_main = f"{main_path}.bak"
+        if os.path.exists(backup_main):
+            logger.info(f"备份文件已存在，跳过备份步骤: {backup_main}")
+            return True
+            
         if os.path.exists(main_path):
-            backup_main = f"{main_path}.bak"
             shutil.copy2(main_path, backup_main)
             logger.info(f"已备份 main.js: {backup_main}")
 

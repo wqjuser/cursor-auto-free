@@ -103,12 +103,15 @@ class MachineIDResetter:
             with open(self.db_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
 
-            # 创建备份
+            # 只在备份文件不存在时创建备份
             backup_path = f"{self.db_path}.backup"
-            print(f"{Fore.CYAN}{EMOJI['BACKUP']} 创建配置文件备份...{Style.RESET_ALL}")
-            with open(backup_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=4)
-            print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 备份文件已保存至: {backup_path}{Style.RESET_ALL}")
+            if not os.path.exists(backup_path):
+                print(f"{Fore.CYAN}{EMOJI['BACKUP']} 创建配置文件备份...{Style.RESET_ALL}")
+                with open(backup_path, "w", encoding="utf-8") as f:
+                    json.dump(config, f, indent=4)
+                print(f"{Fore.GREEN}{EMOJI['SUCCESS']} 备份文件已保存至: {backup_path}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.CYAN}{EMOJI['INFO']} 已存在备份文件，跳过备份步骤{Style.RESET_ALL}")
 
             # 生成新的ID
             print(f"{Fore.CYAN}{EMOJI['RESET']} 生成新的机器标识...{Style.RESET_ALL}")
