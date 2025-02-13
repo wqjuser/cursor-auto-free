@@ -439,6 +439,13 @@ def inner_restart_cursor():
 def try_register(is_auto_register=False):
     global browser_manager, email_handler, sign_up_url, settings_url, account, password, first_name, last_name, is_success
     logging.info("\n开始注册账号")
+    
+    # 获取 PIN 码
+    pin = ''
+    if not is_auto_register:
+        pin = input("\n请输入邮箱 PIN 码: ").strip()
+        logging.info("PIN 码已输入")
+    
     logging.info("正在初始化浏览器...")
     # 获取user_agent
     user_agent = get_user_agent()
@@ -451,8 +458,10 @@ def try_register(is_auto_register=False):
     browser = browser_manager.init_browser(user_agent)
     # 获取并打印浏览器的user-agent
     user_agent = browser.latest_tab.run_js("return navigator.userAgent")
+    
     logging.info("正在初始化邮箱验证模块...")
-    email_handler = EmailVerificationHandler()
+    email_handler = EmailVerificationHandler(pin=pin)  # 传入 pin 参数
+    
     logging.info("\n=== 配置信息 ===")
     login_url = "https://authenticator.cursor.sh"
     sign_up_url = "https://authenticator.cursor.sh/sign-up"

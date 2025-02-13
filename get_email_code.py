@@ -8,11 +8,12 @@ import imaplib
 
 
 class EmailVerificationHandler:
-    def __init__(self):
+    def __init__(self, pin=''):
         self.imap = Config().get_imap()
         self.username = Config().get_temp_mail()
         self.session = requests.Session()
         self.emailExtension = "@mailto.plus"
+        self.pin = pin
 
     def get_verification_code(self):
         code = None
@@ -111,7 +112,7 @@ class EmailVerificationHandler:
     # 手动输入验证码
     def _get_latest_mail_code(self):
         # 获取邮件列表
-        mail_list_url = f"https://tempmail.plus/api/mails?email={self.username}{self.emailExtension}&limit=20&epin="
+        mail_list_url = f"https://tempmail.plus/api/mails?email={self.username}{self.emailExtension}&limit=20&epin={self.pin}"
         mail_list_response = self.session.get(mail_list_url)
         mail_list_data = mail_list_response.json()
         time.sleep(0.5)
@@ -124,7 +125,7 @@ class EmailVerificationHandler:
             return None, None
 
         # 获取具体邮件内容
-        mail_detail_url = f"https://tempmail.plus/api/mails/{first_id}?email={self.username}{self.emailExtension}&epin="
+        mail_detail_url = f"https://tempmail.plus/api/mails/{first_id}?email={self.username}{self.emailExtension}&epin={self.pin}"
         mail_detail_response = self.session.get(mail_detail_url)
         mail_detail_data = mail_detail_response.json()
         time.sleep(0.5)
@@ -146,7 +147,7 @@ class EmailVerificationHandler:
         payload = {
             "email": f"{self.username}{self.emailExtension}",
             "first_id": first_id,
-            "epin": "",
+            "epin": self.pin,
         }
 
         # 最多尝试5次
