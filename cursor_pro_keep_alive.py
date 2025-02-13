@@ -224,7 +224,6 @@ def sign_up_account(browser, tab, is_auto_register=False):
     logging.info("=== 开始注册账号流程 ===")
     logging.info(f"正在访问注册页面: {sign_up_url}")
     tab.get(sign_up_url)
-
     try:
         if tab.ele("@name=first_name"):
             logging.info("正在填写个人信息...")

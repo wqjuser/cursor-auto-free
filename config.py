@@ -36,7 +36,7 @@ class Config:
         domains = ["wqj666.ggff.net", "wqjsonder.ggff.net"]
         # 设置默认值
         self.imap = False
-        self.temp_mail = "wqj666"  # 默认设置为 wqj666
+        self.temp_mail = "sonder"  # 默认设置为 wqj666
         self.domain = random.choice(domains)
 
         # 检查是否支持颜色输出
