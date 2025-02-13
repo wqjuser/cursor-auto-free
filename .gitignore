@@ -27,3 +27,6 @@ node_modules/
 .env
 
 screenshots/
+/cursor_accounts_20250208_200711.txt
+/auto_register.py
+/.gitee/go/build.yml
