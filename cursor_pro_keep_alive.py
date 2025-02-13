@@ -436,15 +436,9 @@ def inner_restart_cursor():
         os._exit(1)
 
 
-def try_register(is_auto_register=False):
+def try_register(is_auto_register=False, pin=''):
     global browser_manager, email_handler, sign_up_url, settings_url, account, password, first_name, last_name, is_success
     logging.info("\n开始注册账号")
-    
-    # 获取 PIN 码
-    pin = ''
-    if not is_auto_register:
-        pin = input("\n请输入邮箱 PIN 码: ").strip()
-        logging.info("PIN 码已输入")
     
     logging.info("正在初始化浏览器...")
     # 获取user_agent
@@ -460,7 +454,7 @@ def try_register(is_auto_register=False):
     user_agent = browser.latest_tab.run_js("return navigator.userAgent")
     
     logging.info("正在初始化邮箱验证模块...")
-    email_handler = EmailVerificationHandler(pin=pin)  # 传入 pin 参数
+    email_handler = EmailVerificationHandler(pin=pin)
     
     logging.info("\n=== 配置信息 ===")
     login_url = "https://authenticator.cursor.sh"
@@ -500,10 +494,11 @@ def try_register(is_auto_register=False):
     return browser_manager, is_success
 
 
-def batch_register(num_accounts):
+def batch_register(num_accounts, pin=''):
     """批量注册账号
     Args:
         num_accounts: 要注册的账号数量
+        pin: 邮箱 PIN 码
     """
     successful_accounts = []
     failed_attempts = 0
@@ -588,7 +583,7 @@ def batch_register(num_accounts):
         logging.info(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
         browser_manager = None
         try:
-            browser_manager, is_success = try_register(is_auto_register=True)
+            browser_manager, is_success = try_register(is_auto_register=True, pin=pin)
             if is_success:
                 successful_accounts.append({
                     'email': account,
@@ -637,7 +632,7 @@ if __name__ == "__main__":
 
     print_logo()
 
-    choice = show_menu()
+    choice = show_menu()  # 只获取选择
     cursor_path = ""
 
     if choice == 2:
@@ -671,7 +666,11 @@ if __name__ == "__main__":
             except ValueError:
                 print("请输入有效的数字")
 
-        batch_register(num)
+        # 在这里获取 PIN 码
+        pin = input("\n请输入邮箱 PIN 码: ").strip()
+        logging.info("PIN 码已输入")
+
+        batch_register(num, pin)
         print("\n批量注册完成，按回车键退出...", end='', flush=True)
         input()
         sys.exit(0)
@@ -689,14 +688,16 @@ if __name__ == "__main__":
         logging.info("\n是否需要注册账号？(y/n)")
         register = input().strip().lower()
         if register == "y":
-            browser_manager, _ = try_register()
+            # 在这里获取 PIN 码
+            pin = input("\n请输入邮箱 PIN 码: ").strip()
+            logging.info("PIN 码已输入")
+            browser_manager, _ = try_register(pin=pin)
         else:
             is_success = True
 
     except Exception as e:
         logging.error(f"程序执行出现错误: {str(e)}")
         import traceback
-
         logging.error(traceback.format_exc())
     finally:
         # 清理资源
