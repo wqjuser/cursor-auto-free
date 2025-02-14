@@ -384,21 +384,15 @@ def sign_up_account(browser, tab, is_auto_register=False):
 
 
 class EmailGenerator:
-    def __init__(
-            self,
-            password="".join(
-                random.choices(
-                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*",
-                    k=12,
-                )
-            ),
-    ):
+    def __init__(self):
         configInstance = Config()
-        # configInstance.print_config()
         self.domain = configInstance.get_domain()
-        self.default_password = password
-        self.default_first_name = self.generate_random_name()
-        self.default_last_name = self.generate_random_name()
+    
+    @staticmethod
+    def generate_password(length=12):
+        """生成随机密码"""
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+        return "".join(random.choices(characters, k=length))
 
     @staticmethod
     def generate_random_name(length=6):
@@ -419,9 +413,9 @@ class EmailGenerator:
         """获取完整的账号信息"""
         return {
             "email": self.generate_email(),
-            "password": self.default_password,
-            "first_name": self.default_first_name,
-            "last_name": self.default_last_name,
+            "password": self.generate_password(),  # 每次调用都生成新的随机密码
+            "first_name": self.generate_random_name(),
+            "last_name": self.generate_random_name()
         }
 
 
@@ -584,10 +578,11 @@ def try_register(is_auto_register=False, pin=''):
     settings_url = "https://www.cursor.com/settings"
     logging.info("正在生成随机账号信息...")
     email_generator = EmailGenerator()
-    account = email_generator.generate_email()
-    password = email_generator.default_password
-    first_name = email_generator.default_first_name
-    last_name = email_generator.default_last_name
+    account_info = email_generator.get_account_info()  # 获取包含随机密码的账号信息
+    account = account_info["email"]
+    password = account_info["password"]
+    first_name = account_info["first_name"]
+    last_name = account_info["last_name"]
     logging.info(f"生成的邮箱账号: {account}")
     tab = browser.latest_tab
     tab.run_js("try { turnstile.reset() } catch(e) { }")
