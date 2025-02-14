@@ -1,7 +1,8 @@
-from DrissionPage import ChromiumOptions, Chromium
-import sys
-import os
 import logging
+import os
+import sys
+
+from DrissionPage import ChromiumOptions, Chromium
 from dotenv import load_dotenv
 
 load_dotenv()
