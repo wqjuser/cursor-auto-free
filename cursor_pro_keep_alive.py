@@ -565,7 +565,7 @@ def try_register(is_auto_register=False, pin=''):
     # 剔除user_agent中的"HeadlessChrome"
     user_agent = user_agent.replace("HeadlessChrome", "Chrome")
     browser_manager = BrowserManager()
-    browser = browser_manager.init_browser(user_agent=user_agent, headless=False)
+    browser = browser_manager.init_browser(user_agent=user_agent)
     # 获取并打印浏览器的user-agent
     user_agent = browser.latest_tab.run_js("return navigator.userAgent")
 
