@@ -29,3 +29,4 @@ node_modules/
 screenshots/
 /auto_register.py
 /.gitee/go/build.yml
+/refresh_data.py
