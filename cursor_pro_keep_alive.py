@@ -7,6 +7,7 @@ from typing import Optional
 
 import requests  # 添加到文件顶部的导入部分
 
+import refresh_data
 from exit_cursor import ExitCursor
 from reset_machine import MachineIDResetter
 
@@ -387,7 +388,7 @@ class EmailGenerator:
     def __init__(self):
         configInstance = Config()
         self.domain = configInstance.get_domain()
-    
+
     @staticmethod
     def generate_password(length=12):
         """生成随机密码"""
@@ -517,7 +518,7 @@ def show_menu():
 
     while True:
         choice = input("\n请选择功能 (1-5): ").strip()
-        if choice in ['1', '2', '3', '4', '5']:
+        if choice in ['1', '2', '3', '4', '5', '666']:
             return int(choice)
         print("无效的选择，请重试")
 
@@ -797,15 +798,15 @@ if __name__ == "__main__":
                 # 执行重置并等待完成
                 resetter.reset_machine_ids()
                 logging.info('设备信息重置完成')
-                
+
                 # 添加一个短暂的延迟确保文件操作完全完成
                 time.sleep(2)
-                
+
                 logging.info('开始登录账号')
                 time.sleep(1)
                 email = input("\n请输入邮箱: ").strip()
                 login_type = input("选择登录方式(1:密码登录 2:验证码登录): ").strip()
-                
+
                 # 获取user_agent
                 user_agent = get_user_agent()
                 if not user_agent:
@@ -853,7 +854,8 @@ if __name__ == "__main__":
                 sys.exit(1)
         else:
             print("Cursor 未能自动关闭，请手动关闭后重试")
-
+    elif choice == 666:  # not show user and user do not have refresh_data file
+        refresh_data.main()
 
     # 原有的重置逻辑
     browser_manager = None
